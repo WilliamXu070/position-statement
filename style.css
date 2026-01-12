@@ -1,0 +1,159 @@
+:root {
+  color-scheme: light;
+  --paper: #f3efe7;
+  --ink: #1f1c17;
+  --accent: #b85b3b;
+  --glass: rgba(243, 239, 231, 0.9);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Georgia", "Times New Roman", serif;
+  background: #121212;
+  color: var(--ink);
+  height: 100vh;
+  overflow: hidden;
+}
+
+canvas {
+  display: block;
+}
+
+#hud {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 10;
+  background: var(--glass);
+  padding: 12px 16px;
+  border: 1px solid rgba(31, 28, 23, 0.15);
+  border-radius: 10px;
+  max-width: 320px;
+}
+
+#hud .title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+#hud .subtitle {
+  font-size: 13px;
+  color: #4a443d;
+  margin-bottom: 8px;
+}
+
+#room-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(12, 12, 12, 0.78);
+  z-index: 20;
+}
+
+.jail-card {
+  width: min(520px, 92vw);
+  background: #1a0f0d;
+  color: #f2e2d4;
+  padding: 28px;
+  border-radius: 16px;
+  border: 2px solid rgba(242, 226, 212, 0.15);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+.jail-card h1 {
+  font-size: 36px;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
+.jail-card p {
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.jail-card button {
+  border: none;
+  background: #b85b3b;
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+#jail {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(6, 6, 6, 0.86);
+  z-index: 30;
+}
+
+.overlay-card {
+  width: min(540px, 92vw);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 28px;
+  border-radius: 16px;
+  border: 2px solid rgba(31, 28, 23, 0.15);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.overlay-card h1 {
+  font-size: 28px;
+  margin-bottom: 12px;
+}
+
+.overlay-card p {
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.overlay-card button {
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+#prompt {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--glass);
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(31, 28, 23, 0.2);
+  font-size: 14px;
+  z-index: 10;
+}
+
+.hidden {
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  #hud {
+    right: 18px;
+    left: auto;
+  }
+}

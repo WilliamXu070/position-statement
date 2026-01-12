@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Position Statement | Story Rooms</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.161.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.161.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="hud">
+      <div class="title">Enacting change, one dent at a time</div>
+      <div class="subtitle">
+        WASD to move. Mouse to look. Press E at a door. 1-4 to cast spells.
+      </div>
+      <div id="room-label"></div>
+    </div>
+
+    <div id="overlay">
+      <div class="overlay-card">
+        <h1>Enter the story rooms</h1>
+        <p>
+          This is a first-person, storybook walkthrough. Each room contains a
+          section of the position statement placed on the walls.
+        </p>
+        <p>Click to lock the pointer and begin.</p>
+        <button id="start">Start</button>
+      </div>
+    </div>
+
+    <div id="prompt" class="hidden">Press E to open</div>
+    <div id="jail" class="hidden">
+      <div class="jail-card">
+        <h1>YOU DIED</h1>
+        <p id="jail-message">Note: don't drink when marking my assignment...</p>
+        <button id="restart">Respawn</button>
+      </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+  </body>
+</html>
