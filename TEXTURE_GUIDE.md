@@ -1,103 +1,98 @@
 # Texture Download Guide
 
-This project uses a mix of downloaded textures (for realism) and procedural textures (for effects). Below are the textures you should download.
+This project uses a mix of downloaded textures (for realism) and procedural textures (for effects). Below are the textures you can optionally download.
+
+## ✅ Current State
+
+**Room 1 works NOW without any textures!** All rooms use procedural textures by default. Adding real textures will enhance visual quality.
 
 ## Where to Download
 
 All textures can be downloaded from **Polyhaven.com** (CC0 license, free to use):
 https://polyhaven.com/textures
 
-## Required Textures
+## Optional Textures for Room 1 (Heavenly Platform)
 
-Download these textures and save them to the `textures/` folder in your project:
+### 1. Marble Texture
+- **Use**: Room 1 platform and pillars (Heavenly Platform)
+- **Recommended**: "White Marble" or "Carrara Marble"
+- **Direct Link**: https://polyhaven.com/a/white_marble_01
+- **Resolution**: 1K (1024x1024) or 2K
+- **Location**: `textures/marble/marble_color.jpg`
 
-### 1. Concrete Texture
-- **Use**: Room 1 platform (Storm Cloud)
-- **Recommended**: "Concrete Floor" or "Cracked Concrete"
-- **Direct Link**: https://polyhaven.com/a/concrete_floor_02
-- **Resolution**: 1K (1024x1024)
-- **Filename**: Save as `concrete.jpg`
+### 2. Cloud Texture (Optional)
+- **Use**: Room 1 clouds (enhanced realism)
+- **Recommended**: Sky HDRI cloud layer
+- **Direct Link**: https://polyhaven.com/hdris/skies
+- **Resolution**: 2K
+- **Location**: `textures/sky/clouds.jpg`
 
-### 2. Wood Planks Texture
-- **Use**: Room 7 platform (Fog Bridge)
-- **Recommended**: "Wood Planks" or "Weathered Planks"
-- **Direct Link**: https://polyhaven.com/a/wood_planks_grey
-- **Resolution**: 1K (1024x1024)
-- **Filename**: Save as `wood.jpg`
+## Optional Textures for Other Rooms
 
-### 3. Metal Grating Texture
-- **Use**: Room 4 platform (Floating Workshop)
-- **Recommended**: "Metal Grid" or "Industrial Floor"
-- **Direct Link**: https://polyhaven.com/a/metal_grid
-- **Resolution**: 1K (1024x1024)
-- **Filename**: Save as `metal-grating.jpg`
+### Room 2 (Breaking Assumptions)
+- Glass crack texture (procedural by default)
+- Location: `textures/glass/crack.jpg`
 
-### 4. Grass Texture
-- **Use**: Room 3 platform (Sky Garden)
-- **Recommended**: "Grass" or "Short Grass"
-- **Direct Link**: https://polyhaven.com/a/aerial_grass_rock
-- **Resolution**: 1K (1024x1024)
-- **Filename**: Save as `grass.jpg`
+### Room 3 (First Principles - Lab)
+- Lab floor texture (white tiles)
+- Location: `textures/lab/floor.jpg`
 
-### 5. Rusty Metal Texture
-- **Use**: Room 1 structures, Room 4 machines
-- **Recommended**: "Rusty Metal" or "Metal Scratches"
-- **Direct Link**: https://polyhaven.com/a/rust_coarse_01
-- **Resolution**: 1K (1024x1024)
-- **Filename**: Save as `rust.jpg`
+### Room 4 (Simplicity)
+- Code texture / complexity patterns (procedural by default)
 
-### 6. Stone/Rock Texture (Optional)
-- **Use**: Room 1 broken structures
-- **Recommended**: "Rock Wall" or "Stone"
-- **Direct Link**: https://polyhaven.com/a/rock_wall
-- **Resolution**: 1K (1024x1024)
-- **Filename**: Save as `stone.jpg`
+### Room 5 (Iteration)
+- Conveyor belt metal texture
+- Location: `textures/metal/conveyor.jpg`
+
+### Room 6 (Reflection)
+- Mirror surface (procedural by default)
 
 ## Download Instructions
 
 1. Visit each link above
 2. Click "Download" button
 3. Select "1K JPG" format (smallest, fastest)
-4. Save the file with the specified filename in the `textures/` folder
-5. Repeat for all textures
+4. Save the file with the specified filename in the correct folder
+5. Repeat for textures you want
 
 ## Procedural Textures (Already Implemented)
 
 These textures are generated in code and don't need to be downloaded:
-- Blueprint grid (Room 2)
-- Circuit board patterns (Room 3)
-- Storm clouds (Room 1)
-- Mirror cracks (Room 6)
-- Fog/cloud effects (all rooms)
+- White marble (Room 1) - uses procedural if texture not found
+- Volumetric clouds (Room 1)
+- Glass cracks (Room 2)
+- Blueprint grid (Room 3)
+- Mirror surface (Room 6)
+- All lighting and particle effects
 
 ## File Structure
 
-After downloading, your folder should look like this:
+After downloading textures (optional), your folder should look like this:
 ```
 doom-position/
 ├── textures/
-│   ├── concrete.jpg
-│   ├── wood.jpg
-│   ├── metal-grating.jpg
-│   ├── grass.jpg
-│   ├── rust.jpg
-│   └── stone.jpg (optional)
-├── main.js
+│   ├── marble/
+│   │   └── marble_color.jpg (optional)
+│   ├── sky/
+│   │   └── clouds.jpg (optional)
+│   ├── glass/
+│   ├── lab/
+│   └── metal/
+├── src/
+│   ├── main.js
+│   └── rooms/
 ├── index.html
 └── ...
 ```
 
-## Alternative: Quick Download Script
+## Quick Download for Room 1 Marble
 
-If you want to automate this, you can use `wget` or `curl`:
+If you want to add the marble texture for Room 1:
 
 ```bash
-cd textures/
-wget -O concrete.jpg "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_02/concrete_floor_02_diff_1k.jpg"
-wget -O wood.jpg "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_planks_grey/wood_planks_grey_diff_1k.jpg"
-wget -O metal-grating.jpg "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/metal_grid/metal_grid_diff_1k.jpg"
-wget -O grass.jpg "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/aerial_grass_rock/aerial_grass_rock_diff_1k.jpg"
-wget -O rust.jpg "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rust_coarse_01/rust_coarse_01_diff_1k.jpg"
+mkdir -p textures/marble
+cd textures/marble
+wget -O marble_color.jpg "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_marble_01/white_marble_01_diff_1k.jpg"
 ```
 
 ## License
