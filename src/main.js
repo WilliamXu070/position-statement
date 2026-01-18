@@ -12,8 +12,6 @@ import { createRoom3 } from "./rooms/room3.js";
 import { createRoom4 } from "./rooms/room4.js";
 import { createRoom5 } from "./rooms/room5.js";
 import { createRoom6 } from "./rooms/room6.js";
-import { createRoom7 } from "./rooms/room7.js";
-import { createRoom8 } from "./rooms/room8.js";
 
 // ===== SCENE SETUP =====
 
@@ -150,8 +148,6 @@ function setupRooms() {
   createRoom4(scene, rooms, spellTargets);
   createRoom5(scene, rooms, spellTargets);
   createRoom6(scene, rooms, spellTargets);
-  createRoom7(scene, rooms, spellTargets);
-  createRoom8(scene, rooms, spellTargets);
 }
 
 setupRooms();

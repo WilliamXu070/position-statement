@@ -2,109 +2,176 @@ import * as THREE from "three";
 import { EYE_HEIGHT } from "../constants.js";
 import { createTextPanel } from "../utils/textPanel.js";
 
-// ROOM 2: Sky Structures - Structure, logic, understanding
+// ROOM 2: Challenging Assumptions - Breaking the Glass Wall
 export function createRoom2(scene, rooms, spellTargets) {
   const group = new THREE.Group();
   group.position.set(0, 0, -200);
 
-  scene.background = new THREE.Color(0x87ceeb);
-  scene.fog = new THREE.FogExp2(0x87ceeb, 0.005);
+  // Dark, confined space
+  scene.background = new THREE.Color(0x1a1a1a);
+  scene.fog = new THREE.Fog(0x1a1a1a, 5, 40);
 
-  // Infinite invisible platform
+  // Dark floor
   const platform = new THREE.Mesh(
     new THREE.PlaneGeometry(10000, 10000),
     new THREE.MeshStandardMaterial({
-      color: 0x87ceeb,
-      transparent: true,
-      opacity: 0.1,
+      color: 0x2a2a2a,
+      roughness: 0.9,
+      metalness: 0.1,
     })
   );
   platform.rotation.x = -Math.PI / 2;
   platform.position.y = 0;
   group.add(platform);
+  spellTargets.push(platform);
 
-  // Floating geometric shapes
-  const shapes = [];
-  const shapeMaterials = [
-    new THREE.MeshStandardMaterial({ color: 0x4a90e2, emissive: 0x1a4a7a, emissiveIntensity: 0.5 }),
-    new THREE.MeshStandardMaterial({ color: 0x5aa3e8, emissive: 0x1a4a7a, emissiveIntensity: 0.5 }),
-    new THREE.MeshStandardMaterial({ color: 0x6ab6ee, emissive: 0x1a4a7a, emissiveIntensity: 0.5 }),
+  // Tall dark walls on sides
+  const wallMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1a1a1a,
+    roughness: 0.8,
+  });
+
+  const leftWall = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 10, 40),
+    wallMaterial
+  );
+  leftWall.position.set(-12, 5, 0);
+  group.add(leftWall);
+
+  const rightWall = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 10, 40),
+    wallMaterial
+  );
+  rightWall.position.set(12, 5, 0);
+  group.add(rightWall);
+
+  // Red warning text on walls
+  const warnings = [
+    "You need institutional data.",
+    "You're not trained.",
+    "Normal people can't compete.",
+    "It's impossible.",
   ];
 
-  for (let i = 0; i < 20; i++) {
-    const type = Math.floor(Math.random() * 3);
-    let geometry;
-    if (type === 0) {
-      geometry = new THREE.BoxGeometry(1, 1, 1);
-    } else if (type === 1) {
-      geometry = new THREE.SphereGeometry(0.5, 16, 16);
-    } else {
-      geometry = new THREE.OctahedronGeometry(0.6);
-    }
+  warnings.forEach((text, i) => {
+    const warningPanel = createTextPanel({
+      title: text,
+      body: [],
+      width: 4,
+      height: 1.2,
+    });
+    // Alternate between left and right walls
+    const side = i % 2 === 0 ? -10 : 10;
+    const zPos = -15 + (i * 10);
+    warningPanel.position.set(side, 3 + Math.random() * 2, zPos);
+    warningPanel.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2;
+    warningPanel.material = new THREE.MeshStandardMaterial({
+      map: warningPanel.material.map,
+      emissive: 0xff0000,
+      emissiveIntensity: 0.5,
+      roughness: 0.9,
+      side: THREE.DoubleSide,
+    });
+    group.add(warningPanel);
+  });
 
-    const mesh = new THREE.Mesh(geometry, shapeMaterials[type]);
-    mesh.position.set(
-      (Math.random() - 0.5) * 30,
-      Math.random() * 15 + 2,
-      (Math.random() - 0.5) * 30
-    );
-    mesh.userData.initialPosition = mesh.position.clone();
-    mesh.userData.orbitRadius = 2 + Math.random() * 3;
-    mesh.userData.orbitSpeed = 0.5 + Math.random() * 0.5;
-    mesh.userData.orbitAngle = Math.random() * Math.PI * 2;
-    group.add(mesh);
-    shapes.push(mesh);
-  }
+  // Glass wall blocking path
+  const glassGeometry = new THREE.PlaneGeometry(20, 8);
+  const glassMaterial = new THREE.MeshStandardMaterial({
+    color: 0x88ccff,
+    transparent: true,
+    opacity: 0.3,
+    roughness: 0.1,
+    metalness: 0.9,
+    side: THREE.DoubleSide,
+  });
+  const glassWall = new THREE.Mesh(glassGeometry, glassMaterial);
+  glassWall.position.set(0, 4, -10);
+  glassWall.userData.clickable = true;
+  glassWall.userData.broken = false;
+  glassWall.userData.crackProgress = 0;
+  group.add(glassWall);
+  spellTargets.push(glassWall);
 
-  // Blueprint grid lines
-  const gridHelper = new THREE.GridHelper(40, 40, 0x4a90e2, 0x2a5a8a);
-  gridHelper.position.y = 0.1;
-  group.add(gridHelper);
+  // Glass wall edges (frame)
+  const edgesGeometry = new THREE.EdgesGeometry(glassGeometry);
+  const edgesMaterial = new THREE.LineBasicMaterial({
+    color: 0x66aaff,
+    linewidth: 2
+  });
+  const glassEdges = new THREE.LineSegments(edgesGeometry, edgesMaterial);
+  glassWall.add(glassEdges);
 
-  // Text panels
-  const panel1 = createTextPanel({
-    title: "My Beliefs About Design",
+  // Bright hallway behind glass (revealed when broken)
+  const hallwayLight = new THREE.PointLight(0xffffff, 0, 30);
+  hallwayLight.position.set(0, 4, -25);
+  scene.add(hallwayLight);
+
+  // Hallway geometry
+  const hallwayFloor = new THREE.Mesh(
+    new THREE.PlaneGeometry(20, 30),
+    new THREE.MeshStandardMaterial({
+      color: 0xf0f0f0,
+      roughness: 0.8,
+    })
+  );
+  hallwayFloor.rotation.x = -Math.PI / 2;
+  hallwayFloor.position.set(0, 0, -25);
+  hallwayFloor.visible = false;
+  group.add(hallwayFloor);
+
+  // Description panel
+  const descPanel = createTextPanel({
+    title: "Challenging Assumptions",
     body: [
-      "I believe design is the logical structure of ideas.",
-      "It takes a problem, turns it into a set of constraints, and forces you to define what is actually possible.",
+      "Everyone said normal people can't compete in quantitative finance.",
       "",
-      "Design is not just about having an idea.",
-      "It is about rigorously defining the criteria, limitations, and steps required to make that idea real.",
+      "I treated that as a hypothesis, not a limitation.",
       "",
-      "Each step in the process is like climbing a ladder of understanding.",
-      "You move from imagination to clarity, and eventually to action.",
-      "",
-      "This belief shapes how I approach engineering:",
-      "I don't just want to dream — I want to understand.",
+      "Click the glass wall to break through doubt.",
     ],
     width: 8,
-    height: 6,
+    height: 4.5,
   });
-  panel1.position.set(0, 3, -12);
-  group.add(panel1);
+  descPanel.position.set(0, 3, 5);
+  group.add(descPanel);
 
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  // Dim lighting
+  const ambientLight = new THREE.AmbientLight(0x4a4a4a, 0.3);
   scene.add(ambientLight);
 
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  directionalLight.position.set(5, 20, 5);
-  scene.add(directionalLight);
+  const spotLight = new THREE.SpotLight(0xff6666, 0.8, 30, Math.PI / 6);
+  spotLight.position.set(0, 10, 0);
+  scene.add(spotLight);
 
   rooms.push({
     id: "room2",
     group,
     spawn: new THREE.Vector3(0, EYE_HEIGHT, -200),
     update: (time, delta) => {
-      shapes.forEach((shape) => {
-        shape.userData.orbitAngle += shape.userData.orbitSpeed * delta;
-        const offset = new THREE.Vector3(
-          Math.cos(shape.userData.orbitAngle) * shape.userData.orbitRadius,
-          Math.sin(shape.userData.orbitAngle * 0.7) * shape.userData.orbitRadius * 0.5,
-          Math.sin(shape.userData.orbitAngle) * shape.userData.orbitRadius
-        );
-        shape.position.copy(shape.userData.initialPosition).add(offset);
-        shape.rotation.x += delta * 0.5;
-        shape.rotation.y += delta * 0.7;
+      // If glass wall clicked, animate breaking
+      if (glassWall.userData.broken) {
+        glassWall.userData.crackProgress += delta * 2;
+
+        // Fade out glass
+        glassMaterial.opacity = Math.max(0, 0.3 - glassWall.userData.crackProgress * 0.5);
+
+        // Brighten hallway
+        hallwayLight.intensity = Math.min(2, glassWall.userData.crackProgress * 2);
+        hallwayFloor.visible = glassWall.userData.crackProgress > 0.5;
+
+        // Remove glass when fully broken
+        if (glassWall.userData.crackProgress > 1 && glassWall.visible) {
+          glassWall.visible = false;
+        }
+      }
+
+      // Pulse warning text
+      group.traverse((child) => {
+        if (child.material && child.material.emissive) {
+          const pulse = 0.3 + Math.sin(time * 3 + child.position.z) * 0.2;
+          child.material.emissiveIntensity = pulse;
+        }
       });
     },
   });

@@ -1,378 +1,281 @@
 import * as THREE from "three";
 import { EYE_HEIGHT } from "../constants.js";
-import { createParticleSystem } from "../utils/geometry.js";
 import { createTextPanel } from "../utils/textPanel.js";
 
-// ROOM 5: Microscope Platform - Academic experience
+// ROOM 5: Speed & Iteration (Hackathons)
 export function createRoom5(scene, rooms, spellTargets) {
   const group = new THREE.Group();
   group.position.set(0, 0, -800);
 
-  scene.background = new THREE.Color(0x000033);
-  scene.fog = new THREE.FogExp2(0x000033, 0.001);
+  // Dynamic, energetic environment
+  scene.background = new THREE.Color(0x1a1a0a);
+  scene.fog = new THREE.Fog(0x1a1a0a, 10, 60);
 
-  // Lab floor with scientific grid pattern
+  // Dark floor with grid lines
   const platform = new THREE.Mesh(
     new THREE.PlaneGeometry(10000, 10000),
     new THREE.MeshStandardMaterial({
-      color: 0x3a3a4a,
-      roughness: 0.7,
-      metalness: 0.2,
+      color: 0x2a2a1a,
+      roughness: 0.9,
+      metalness: 0.1,
     })
   );
   platform.rotation.x = -Math.PI / 2;
   platform.position.y = 0;
   group.add(platform);
+  spellTargets.push(platform);
 
-  // Detailed microscope structure
-  const microscopeGroup = new THREE.Group();
-  const microscopeMetal = new THREE.MeshStandardMaterial({
-    color: 0x5a5a6a,
-    metalness: 0.8,
-    roughness: 0.3,
+  // Grid lines on floor
+  const gridHelper = new THREE.GridHelper(40, 40, 0xff8800, 0x664400);
+  gridHelper.position.y = 0.01;
+  group.add(gridHelper);
+
+  // Conveyor belt visualization (central strip)
+  const beltGeometry = new THREE.PlaneGeometry(6, 50);
+  const beltMaterial = new THREE.MeshStandardMaterial({
+    color: 0x3a3a2a,
+    roughness: 0.8,
+    emissive: 0x2a2a1a,
+    emissiveIntensity: 0.3,
   });
+  const belt = new THREE.Mesh(beltGeometry, beltMaterial);
+  belt.rotation.x = -Math.PI / 2;
+  belt.position.set(0, 0.05, -10);
+  group.add(belt);
 
-  // Base (heavy, stable)
-  const base = new THREE.Mesh(
-    new THREE.CylinderGeometry(3, 4, 0.5, 16),
-    microscopeMetal
-  );
-  base.position.y = 0.25;
-  microscopeGroup.add(base);
-
-  // Vertical arm
-  const arm = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.3, 0.3, 6, 16),
-    microscopeMetal
-  );
-  arm.position.set(-2, 3.5, 0);
-  microscopeGroup.add(arm);
-
-  // Horizontal stage support
-  const stageSupport = new THREE.Mesh(
-    new THREE.BoxGeometry(5, 0.3, 0.3),
-    microscopeMetal
-  );
-  stageSupport.position.set(0, 3, 0);
-  microscopeGroup.add(stageSupport);
-
-  // Stage (specimen platform)
-  const stage = new THREE.Mesh(
-    new THREE.CylinderGeometry(2.5, 2.5, 0.3, 16),
-    new THREE.MeshStandardMaterial({
-      color: 0x4a4a5a,
-      metalness: 0.6,
-      roughness: 0.4,
-    })
-  );
-  stage.position.y = 3.5;
-  microscopeGroup.add(stage);
-
-  // Objective lens (stepped cylinders)
-  const objective1 = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.8, 1, 1.5, 16),
-    microscopeMetal
-  );
-  objective1.position.y = 2.2;
-  microscopeGroup.add(objective1);
-
-  const objective2 = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.5, 0.8, 1, 16),
-    microscopeMetal
-  );
-  objective2.position.y = 1.2;
-  microscopeGroup.add(objective2);
-
-  // Eyepiece
-  const eyepiece = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.4, 0.5, 1.5, 16),
-    microscopeMetal
-  );
-  eyepiece.position.set(-2, 7, 0);
-  eyepiece.rotation.x = Math.PI / 6;
-  microscopeGroup.add(eyepiece);
-
-  // Illumination ring
-  const illumRing = new THREE.Mesh(
-    new THREE.TorusGeometry(1.2, 0.1, 16, 32),
-    new THREE.MeshStandardMaterial({
-      color: 0x00ff88,
-      emissive: 0x00ff88,
-      emissiveIntensity: 1.5,
-    })
-  );
-  illumRing.position.y = 4.5;
-  illumRing.rotation.x = Math.PI / 2;
-  microscopeGroup.add(illumRing);
-
-  microscopeGroup.position.y = 0;
-  group.add(microscopeGroup);
-
-  // Enhanced cells with organelles
-  const cells = [];
+  // Belt edge markers
   for (let i = 0; i < 20; i++) {
-    const cellGroup = new THREE.Group();
-
-    // Cell membrane
-    const membrane = new THREE.Mesh(
-      new THREE.SphereGeometry(0.4 + Math.random() * 0.3, 16, 16),
+    const marker = new THREE.Mesh(
+      new THREE.BoxGeometry(0.3, 0.1, 0.8),
       new THREE.MeshStandardMaterial({
-        color: 0x00ff88,
-        emissive: 0x00aa55,
-        emissiveIntensity: 1.2,
-        transparent: true,
-        opacity: 0.6,
+        color: 0xff8800,
+        emissive: 0xff6600,
+        emissiveIntensity: 0.5,
       })
     );
-    cellGroup.add(membrane);
+    marker.position.set(2.8, 0.1, -25 + i * 2.5);
+    marker.userData.initialZ = marker.position.z;
+    group.add(marker);
 
-    // Nucleus
-    const nucleus = new THREE.Mesh(
-      new THREE.SphereGeometry(0.15, 12, 12),
-      new THREE.MeshStandardMaterial({
-        color: 0x0088ff,
-        emissive: 0x0066aa,
-        emissiveIntensity: 1.5,
-        transparent: true,
-        opacity: 0.9,
-      })
-    );
-    cellGroup.add(nucleus);
-
-    // Organelles (small spheres)
-    for (let j = 0; j < 3; j++) {
-      const organelle = new THREE.Mesh(
-        new THREE.SphereGeometry(0.05, 8, 8),
-        new THREE.MeshStandardMaterial({
-          color: 0xffaa00,
-          emissive: 0xff8800,
-          emissiveIntensity: 1.0,
-        })
-      );
-      organelle.position.set(
-        (Math.random() - 0.5) * 0.3,
-        (Math.random() - 0.5) * 0.3,
-        (Math.random() - 0.5) * 0.3
-      );
-      cellGroup.add(organelle);
-    }
-
-    cellGroup.position.set(
-      (Math.random() - 0.5) * 8,
-      3 + (Math.random() - 0.5) * 2,
-      (Math.random() - 0.5) * 8
-    );
-    cellGroup.userData.rotationSpeed = (Math.random() - 0.5) * 0.5;
-    cellGroup.userData.floatOffset = Math.random() * Math.PI * 2;
-
-    group.add(cellGroup);
-    cells.push(cellGroup);
+    const marker2 = marker.clone();
+    marker2.position.x = -2.8;
+    marker2.userData.initialZ = marker2.position.z;
+    group.add(marker2);
   }
 
-  // DNA helix structures
-  const dnaHelixes = [];
-  for (let h = 0; h < 3; h++) {
-    const helixGroup = new THREE.Group();
-    const helixHeight = 4;
-    const helixRadius = 0.3;
-    const steps = 20;
+  // Project cards flying past
+  const projectCards = [];
+  const projectData = [
+    { title: "Invoice OCR", subtitle: "24hr build", color: 0xff6644 },
+    { title: "ML Classifier", subtitle: "Rapid prototype", color: 0x4488ff },
+    { title: "API Gateway", subtitle: "Sprint delivery", color: 0x44ff88 },
+    { title: "Data Pipeline", subtitle: "Fast iteration", color: 0xffaa44 },
+    { title: "Mobile App", subtitle: "Quick MVP", color: 0xff44ff },
+    { title: "Trading Bot", subtitle: "Speed test", color: 0x44ffff },
+  ];
 
-    // Create double helix
-    for (let i = 0; i < steps; i++) {
-      const t = i / steps;
-      const y = t * helixHeight - helixHeight / 2;
-      const angle1 = t * Math.PI * 4;
-      const angle2 = angle1 + Math.PI;
+  projectData.forEach((project, i) => {
+    const card = createTextPanel({
+      title: project.title,
+      body: [project.subtitle],
+      width: 4,
+      height: 2.5,
+    });
 
-      // First strand
-      const sphere1 = new THREE.Mesh(
-        new THREE.SphereGeometry(0.08, 8, 8),
-        new THREE.MeshStandardMaterial({
-          color: 0xff2266,
-          emissive: 0xff0044,
-          emissiveIntensity: 1.0,
-        })
-      );
-      sphere1.position.set(
-        Math.cos(angle1) * helixRadius,
-        y,
-        Math.sin(angle1) * helixRadius
-      );
-      helixGroup.add(sphere1);
-
-      // Second strand
-      const sphere2 = new THREE.Mesh(
-        new THREE.SphereGeometry(0.08, 8, 8),
-        new THREE.MeshStandardMaterial({
-          color: 0x22aaff,
-          emissive: 0x0088ff,
-          emissiveIntensity: 1.0,
-        })
-      );
-      sphere2.position.set(
-        Math.cos(angle2) * helixRadius,
-        y,
-        Math.sin(angle2) * helixRadius
-      );
-      helixGroup.add(sphere2);
-
-      // Connection (base pair)
-      if (i % 2 === 0) {
-        const connection = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.02, 0.02, helixRadius * 2, 8),
-          new THREE.MeshStandardMaterial({
-            color: 0xaaaaff,
-            emissive: 0x6666aa,
-            emissiveIntensity: 0.5,
-          })
-        );
-        connection.position.y = y;
-        connection.rotation.z = Math.PI / 2;
-        connection.rotation.y = angle1;
-        helixGroup.add(connection);
-      }
-    }
-
-    const angle = (h / 3) * Math.PI * 2;
-    helixGroup.position.set(
-      Math.cos(angle) * 12,
-      3,
-      Math.sin(angle) * 12
+    card.position.set(
+      (Math.random() - 0.5) * 4,
+      2 + Math.random() * 1,
+      -30 + i * 8
     );
-    helixGroup.rotation.x = Math.PI / 6;
-    helixGroup.userData.rotationSpeed = 0.2;
 
-    group.add(helixGroup);
-    dnaHelixes.push(helixGroup);
-  }
+    card.material = new THREE.MeshStandardMaterial({
+      map: card.material.map,
+      emissive: project.color,
+      emissiveIntensity: 0.6,
+      color: 0x2a2a2a,
+      roughness: 0.7,
+      side: THREE.DoubleSide,
+    });
 
-  // Improved Earth with atmosphere
-  const earthGroup = new THREE.Group();
+    card.userData.clickable = true;
+    card.userData.locked = false;
+    card.userData.speed = 3 + Math.random() * 2;
+    card.userData.originalEmissive = project.color;
+    card.userData.initialZ = card.position.z;
 
-  // Earth sphere
-  const earth = new THREE.Mesh(
-    new THREE.SphereGeometry(50, 32, 32),
-    new THREE.MeshStandardMaterial({
-      color: 0x3a6a4a,
-      emissive: 0x1a3a2a,
-      emissiveIntensity: 0.3,
-      roughness: 0.8,
-    })
-  );
-  earthGroup.add(earth);
-
-  // Cloud layer
-  const clouds = new THREE.Mesh(
-    new THREE.SphereGeometry(51, 32, 32),
-    new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.2,
-      roughness: 1.0,
-    })
-  );
-  earthGroup.add(clouds);
-
-  // Atmosphere glow
-  const atmosphere = new THREE.Mesh(
-    new THREE.SphereGeometry(54, 32, 32),
-    new THREE.MeshStandardMaterial({
-      color: 0x4a9aff,
-      transparent: true,
-      opacity: 0.15,
-      side: THREE.BackSide,
-      emissive: 0x2a6aff,
-      emissiveIntensity: 0.5,
-    })
-  );
-  earthGroup.add(atmosphere);
-
-  earthGroup.position.set(0, -100, -200);
-  group.add(earthGroup);
-
-  // Star particles
-  const stars = createParticleSystem(150, {
-    size: 0.5,
-    color: 0xffffff,
-    spread: 200,
-    emissive: true,
-    opacity: 0.8,
-    centerPosition: new THREE.Vector3(0, 20, 0)
+    group.add(card);
+    projectCards.push(card);
+    spellTargets.push(card);
   });
-  group.add(stars);
 
-  // Text panels
-  const panel1 = createTextPanel({
-    title: "Experience 1 – Academic: Cellphone Microscope",
+  // Large timer/speed indicator
+  const timerPanel = createTextPanel({
+    title: "24:00:00",
+    body: ["Time Remaining"],
+    width: 5,
+    height: 2.5,
+  });
+  timerPanel.position.set(-8, 4, -5);
+  timerPanel.material = new THREE.MeshStandardMaterial({
+    map: timerPanel.material.map,
+    emissive: 0xff3300,
+    emissiveIntensity: 0.7,
+    color: 0x1a1a1a,
+    roughness: 0.8,
+    side: THREE.DoubleSide,
+  });
+  group.add(timerPanel);
+
+  // Speed indicators (moving arrows)
+  const arrowGeometry = new THREE.ConeGeometry(0.3, 1, 3);
+  const arrows = [];
+  for (let i = 0; i < 5; i++) {
+    const arrow = new THREE.Mesh(
+      arrowGeometry,
+      new THREE.MeshStandardMaterial({
+        color: 0xff8800,
+        emissive: 0xff6600,
+        emissiveIntensity: 0.8,
+      })
+    );
+    arrow.rotation.x = Math.PI / 2;
+    arrow.position.set(8, 3 - i * 0.5, -10 - i * 2);
+    arrow.userData.initialZ = arrow.position.z;
+    group.add(arrow);
+    arrows.push(arrow);
+  }
+
+  // Main description panel
+  const descPanel = createTextPanel({
+    title: "Speed & Iteration",
     body: [
-      "I developed a $100 cellphone-based microscope so that anyone with a phone could see cells.",
-      "The dream was to make microscopy accessible — whether for healthcare, research, or simple curiosity.",
+      "Hackathons taught me to build fast and iterate faster.",
       "",
-      "I learned that the engineering design process is what stops people from giving up.",
+      "Move quickly, test ideas, learn from failures.",
       "",
-      "If you give a caveman a rock and tell them to go to the moon, they don't know where to start.",
-      "But if you teach them physics, materials, and planning, suddenly the impossible becomes structured.",
-      "",
-      "Through this project, I learned that understanding the field first is critical.",
-      "Without that knowledge, you don't have a direction — you just have an idea.",
-      "",
-      "Engineering taught me how to break down a dream into steps, and how to solve problems as they appear.",
-      "",
-      "This experience changed how I see engineering.",
-      "There are too many smart people in the world.",
-      "Most ideas have already been thought of.",
-      "Most progress is incremental, not revolutionary.",
-      "",
-      "My original microscope design had low frame rates and high computational demands.",
-      "Instead of giving up, I optimized the system.",
-      "I developed better algorithms and image capture methods to reduce processing time and make the device more practical.",
-      "",
-      "This taught me that engineering is not always about creating something completely new.",
-      "Sometimes it is about making something better.",
+      "Click a project card to lock it and refine it.",
     ],
     width: 9,
-    height: 10,
+    height: 4.5,
   });
-  panel1.position.set(0, 3, -14);
-  group.add(panel1);
+  descPanel.position.set(0, 3.5, 8);
+  group.add(descPanel);
 
-  const ambientLight = new THREE.AmbientLight(0x4a4a6a, 0.3);
+  // Refinement workspace (appears when card locked)
+  const workspacePanel = createTextPanel({
+    title: "Refinement Mode",
+    body: [
+      "Now we iterate:",
+      "→ Test edge cases",
+      "→ Optimize performance",
+      "→ Polish UX",
+    ],
+    width: 6,
+    height: 4,
+  });
+  workspacePanel.position.set(0, 3, -15);
+  workspacePanel.visible = false;
+  workspacePanel.material = new THREE.MeshStandardMaterial({
+    map: workspacePanel.material.map,
+    emissive: 0x44ff88,
+    emissiveIntensity: 0,
+    color: 0x1a1a1a,
+    roughness: 0.8,
+    side: THREE.DoubleSide,
+  });
+  group.add(workspacePanel);
+
+  // Energetic lighting
+  const ambientLight = new THREE.AmbientLight(0x4a3a2a, 0.4);
   scene.add(ambientLight);
 
-  const lensLight = new THREE.PointLight(0x00ff88, 3, 25);
-  lensLight.position.set(0, 3.5, 0);
-  scene.add(lensLight);
+  const orangeLight1 = new THREE.PointLight(0xff8800, 1.5, 25);
+  orangeLight1.position.set(-8, 5, -5);
+  scene.add(orangeLight1);
+
+  const orangeLight2 = new THREE.PointLight(0xffaa44, 1.5, 25);
+  orangeLight2.position.set(8, 5, -5);
+  scene.add(orangeLight2);
+
+  const timerLight = new THREE.PointLight(0xff3300, 1, 15);
+  timerLight.position.set(-8, 5, -5);
+  scene.add(timerLight);
+
+  let elapsedTime = 0;
 
   rooms.push({
     id: "room5",
     group,
     spawn: new THREE.Vector3(0, EYE_HEIGHT, -800),
     update: (time, delta) => {
-      // Animate cells
-      cells.forEach((cell, i) => {
-        cell.position.y += Math.sin(time * 2 + cell.userData.floatOffset) * 0.01;
-        cell.rotation.x += cell.userData.rotationSpeed * delta;
-        cell.rotation.y += cell.userData.rotationSpeed * delta * 0.7;
+      elapsedTime += delta;
+
+      // Move belt markers forward
+      group.traverse((child) => {
+        if (child.userData.initialZ !== undefined && child instanceof THREE.Mesh && child.geometry instanceof THREE.BoxGeometry) {
+          child.position.z += delta * 5;
+          if (child.position.z > 5) {
+            child.position.z = child.userData.initialZ;
+          }
+        }
       });
 
-      // Animate DNA helixes
-      dnaHelixes.forEach((helix) => {
-        helix.rotation.y += helix.userData.rotationSpeed * delta;
+      // Move arrows forward
+      arrows.forEach((arrow) => {
+        arrow.position.z += delta * 8;
+        if (arrow.position.z > 5) {
+          arrow.position.z = arrow.userData.initialZ;
+        }
       });
 
-      // Rotate Earth and clouds
-      earth.rotation.y += delta * 0.05;
-      clouds.rotation.y += delta * 0.07;
+      // Move project cards or keep locked ones in place
+      projectCards.forEach((card) => {
+        if (card.userData.locked) {
+          // Locked card moves to center and stays
+          card.position.x += (0 - card.position.x) * delta * 2;
+          card.position.y += (2.5 - card.position.y) * delta * 2;
+          card.position.z += (-8 - card.position.z) * delta * 2;
+          card.rotation.y += (0 - card.rotation.y) * delta * 3;
 
-      // Twinkle stars
-      const starPositions = stars.geometry.attributes.position;
-      stars.material.opacity = 0.6 + Math.sin(time * 2) * 0.2;
+          // Show refinement workspace
+          workspacePanel.visible = true;
+          workspacePanel.material.emissiveIntensity = 0.6;
 
-      // Pulse illumination ring
-      illumRing.material.emissiveIntensity = 1.2 + Math.sin(time * 3) * 0.3;
+          // Change card color to green (refined)
+          card.material.emissive.lerp(new THREE.Color(0x44ff88), delta * 2);
+        } else {
+          // Cards fly past on conveyor
+          card.position.z += delta * card.userData.speed;
+          if (card.position.z > 10) {
+            card.position.z = card.userData.initialZ;
+          }
 
-      // Pulse lens light
-      lensLight.intensity = 2.5 + Math.sin(time * 2) * 0.5;
+          // Gentle rotation and float
+          card.rotation.y += delta * 0.5;
+          card.position.y += Math.sin(time * 2 + card.position.z * 0.1) * 0.01;
+        }
+
+        // Pulse emissive
+        const pulse = 0.6 + Math.sin(time * 3 + card.position.z) * 0.2;
+        if (!card.userData.locked) {
+          card.material.emissiveIntensity = pulse;
+        }
+      });
+
+      // Update timer (countdown effect)
+      const hours = Math.floor((24 - elapsedTime / 3) % 24);
+      const minutes = Math.floor((elapsedTime * 10) % 60);
+      const seconds = Math.floor((elapsedTime * 100) % 60);
+      // Timer is visual only, no text update needed
+
+      // Pulse timer
+      const timerPulse = 0.7 + Math.sin(time * 4) * 0.3;
+      timerPanel.material.emissiveIntensity = timerPulse;
+      timerLight.intensity = timerPulse * 1.5;
+
+      // Flicker lights
+      orangeLight1.intensity = 1.5 + Math.sin(time * 5) * 0.3;
+      orangeLight2.intensity = 1.5 + Math.sin(time * 5 + Math.PI) * 0.3;
     },
   });
 
