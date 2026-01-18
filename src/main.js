@@ -5,6 +5,7 @@ import { initTextureSystem } from "./utils/textures.js";
 import { initTextPanelSystem } from "./utils/textPanel.js";
 import { createWand, createLightningBeam, getSpellHit } from "./core/spells.js";
 import { initAudioSystem, loadRoomAudio, playRoomAudio, pauseRoomAudio, resumeRoomAudio } from "./core/audio.js";
+import { checkCollision, clearCollisions } from "./core/collision.js";
 import { ROOM_CONFIGS } from "./rooms/roomConfig.js";
 import { createRoom1 } from "./rooms/room1.js";
 import { createRoom2 } from "./rooms/room2.js";
@@ -248,6 +249,9 @@ function teleportToRoom(index) {
   velocity.set(0, 0, 0);
   canJump = true;
   isOnGround = true;
+
+  // Clear collision boxes from previous room
+  clearCollisions();
 
   roomLabel.textContent = ROOM_CONFIGS[index].label;
 
@@ -526,11 +530,37 @@ function animate() {
     if (move.forward || move.backward) velocity.z -= direction.z * speed * delta;
     if (move.left || move.right) velocity.x -= direction.x * speed * delta;
 
-    controls.moveRight(-velocity.x * delta);
-    controls.moveForward(-velocity.z * delta);
+    // Get current position
+    const playerPosition = controls.getObject().position;
+
+    // Calculate intended new position
+    const intendedPosition = new THREE.Vector3(
+      playerPosition.x,
+      playerPosition.y,
+      playerPosition.z
+    );
+
+    // Apply movement to intended position
+    const moveVector = new THREE.Vector3();
+    camera.getWorldDirection(moveVector);
+    const rightVector = new THREE.Vector3();
+    rightVector.crossVectors(camera.up, moveVector).normalize();
+
+    intendedPosition.addScaledVector(rightVector, -velocity.x * delta);
+    intendedPosition.addScaledVector(moveVector, -velocity.z * delta);
+
+    // Check for collision at intended position
+    if (!checkCollision(intendedPosition, 0.5)) {
+      // No collision, apply movement
+      controls.moveRight(-velocity.x * delta);
+      controls.moveForward(-velocity.z * delta);
+    } else {
+      // Collision detected, stop horizontal velocity
+      velocity.x = 0;
+      velocity.z = 0;
+    }
 
     // Vertical movement (jumping and gravity)
-    const playerPosition = controls.getObject().position;
 
     // Apply gravity
     velocity.y += GRAVITY * delta;

@@ -1,23 +1,24 @@
 import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { EYE_HEIGHT } from "../constants.js";
-import { createTextPanel } from "../utils/textPanel.js";
+import { addModelCollision } from "../core/collision.js";
 
-// ROOM 2: Challenging Assumptions - Breaking the Glass Wall
+// ROOM 2: Meeting Room - Stonks Discussion
 export function createRoom2(scene, rooms, spellTargets) {
   const group = new THREE.Group();
   group.position.set(0, 0, -200);
 
-  // Dark, confined space
-  scene.background = new THREE.Color(0x1a1a1a);
-  scene.fog = new THREE.Fog(0x1a1a1a, 5, 40);
+  // Corporate office lighting
+  scene.background = new THREE.Color(0x87ceeb);
+  scene.fog = new THREE.Fog(0xb0d8f0, 20, 60);
 
-  // Dark floor
+  // Simple floor as fallback
   const platform = new THREE.Mesh(
-    new THREE.PlaneGeometry(10000, 10000),
+    new THREE.PlaneGeometry(50, 50),
     new THREE.MeshStandardMaterial({
-      color: 0x2a2a2a,
-      roughness: 0.9,
-      metalness: 0.1,
+      color: 0x8b8b8b,
+      roughness: 0.8,
+      metalness: 0.2,
     })
   );
   platform.rotation.x = -Math.PI / 2;
@@ -25,152 +26,153 @@ export function createRoom2(scene, rooms, spellTargets) {
   group.add(platform);
   spellTargets.push(platform);
 
-  // Tall dark walls on sides
-  const wallMaterial = new THREE.MeshStandardMaterial({
-    color: 0x1a1a1a,
-    roughness: 0.8,
-  });
+  const loader = new GLTFLoader();
 
-  const leftWall = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 10, 40),
-    wallMaterial
+  // Load meeting room
+  loader.load(
+    'models/meeting_room.glb',
+    (gltf) => {
+      const meetingRoom = gltf.scene;
+      meetingRoom.name = 'meetingRoom';
+
+      // Position and scale the meeting room
+      meetingRoom.position.set(0, 0, -10);
+      meetingRoom.scale.set(2, 2, 2);
+
+      group.add(meetingRoom);
+
+      // Add collision detection for the entire room
+      addModelCollision(meetingRoom, group.position);
+
+      // Make room clickable
+      meetingRoom.traverse((child) => {
+        if (child.isMesh) {
+          spellTargets.push(child);
+        }
+      });
+
+      console.log('✅ Loaded meeting room');
+    },
+    (progress) => {
+      console.log('Loading meeting room:', (progress.loaded / progress.total * 100).toFixed(2) + '%');
+    },
+    (error) => {
+      console.error('❌ Error loading meeting room:', error);
+    }
   );
-  leftWall.position.set(-12, 5, 0);
-  group.add(leftWall);
 
-  const rightWall = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 10, 40),
-    wallMaterial
+  // Load businessman character
+  loader.load(
+    'models/drex__human_3d_character.glb',
+    (gltf) => {
+      const businessman = gltf.scene;
+      businessman.name = 'businessman';
+
+      // Position the businessman at the table
+      businessman.position.set(-3, 0, -12);
+      businessman.scale.set(1.5, 1.5, 1.5);
+      businessman.rotation.y = Math.PI / 4; // Face partially toward player
+
+      group.add(businessman);
+
+      // Add collision for businessman
+      addModelCollision(businessman, group.position);
+
+      // Make businessman clickable
+      businessman.traverse((child) => {
+        if (child.isMesh) {
+          spellTargets.push(child);
+          child.userData.businessman = true;
+        }
+      });
+
+      console.log('✅ Loaded businessman');
+    },
+    (progress) => {
+      console.log('Loading businessman:', (progress.loaded / progress.total * 100).toFixed(2) + '%');
+    },
+    (error) => {
+      console.error('❌ Error loading businessman:', error);
+    }
   );
-  rightWall.position.set(12, 5, 0);
-  group.add(rightWall);
 
-  // Red warning text on walls
-  const warnings = [
-    "You need institutional data.",
-    "You're not trained.",
-    "Normal people can't compete.",
-    "It's impossible.",
-  ];
+  // Load stonks head
+  loader.load(
+    'models/stonks_head.glb',
+    (gltf) => {
+      const stonksHead = gltf.scene;
+      stonksHead.name = 'stonksHead';
 
-  warnings.forEach((text, i) => {
-    const warningPanel = createTextPanel({
-      title: text,
-      body: [],
-      width: 4,
-      height: 1.2,
-    });
-    // Alternate between left and right walls
-    const side = i % 2 === 0 ? -10 : 10;
-    const zPos = -15 + (i * 10);
-    warningPanel.position.set(side, 3 + Math.random() * 2, zPos);
-    warningPanel.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2;
-    warningPanel.material = new THREE.MeshStandardMaterial({
-      map: warningPanel.material.map,
-      emissive: 0xff0000,
-      emissiveIntensity: 0.5,
-      roughness: 0.9,
-      side: THREE.DoubleSide,
-    });
-    group.add(warningPanel);
-  });
+      // Position stonks head on the table or floating
+      stonksHead.position.set(3, 2, -12);
+      stonksHead.scale.set(0.8, 0.8, 0.8);
 
-  // Glass wall blocking path
-  const glassGeometry = new THREE.PlaneGeometry(20, 8);
-  const glassMaterial = new THREE.MeshStandardMaterial({
-    color: 0x88ccff,
-    transparent: true,
-    opacity: 0.3,
-    roughness: 0.1,
-    metalness: 0.9,
-    side: THREE.DoubleSide,
-  });
-  const glassWall = new THREE.Mesh(glassGeometry, glassMaterial);
-  glassWall.position.set(0, 4, -10);
-  glassWall.userData.clickable = true;
-  glassWall.userData.broken = false;
-  glassWall.userData.crackProgress = 0;
-  group.add(glassWall);
-  spellTargets.push(glassWall);
+      group.add(stonksHead);
 
-  // Glass wall edges (frame)
-  const edgesGeometry = new THREE.EdgesGeometry(glassGeometry);
-  const edgesMaterial = new THREE.LineBasicMaterial({
-    color: 0x66aaff,
-    linewidth: 2
-  });
-  const glassEdges = new THREE.LineSegments(edgesGeometry, edgesMaterial);
-  glassWall.add(glassEdges);
+      // Make stonks head clickable and interactive
+      stonksHead.traverse((child) => {
+        if (child.isMesh) {
+          spellTargets.push(child);
+          child.userData.stonks = true;
+        }
+      });
 
-  // Bright hallway behind glass (revealed when broken)
-  const hallwayLight = new THREE.PointLight(0xffffff, 0, 30);
-  hallwayLight.position.set(0, 4, -25);
-  scene.add(hallwayLight);
+      // Store reference for animation
+      stonksHead.userData.rotationSpeed = 0.5;
+      stonksHead.userData.bobSpeed = 2;
+      stonksHead.userData.bobAmount = 0.2;
 
-  // Hallway geometry
-  const hallwayFloor = new THREE.Mesh(
-    new THREE.PlaneGeometry(20, 30),
-    new THREE.MeshStandardMaterial({
-      color: 0xf0f0f0,
-      roughness: 0.8,
-    })
+      console.log('✅ Loaded stonks head');
+    },
+    (progress) => {
+      console.log('Loading stonks head:', (progress.loaded / progress.total * 100).toFixed(2) + '%');
+    },
+    (error) => {
+      console.error('❌ Error loading stonks head:', error);
+    }
   );
-  hallwayFloor.rotation.x = -Math.PI / 2;
-  hallwayFloor.position.set(0, 0, -25);
-  hallwayFloor.visible = false;
-  group.add(hallwayFloor);
 
-  // Description panel
-  const descPanel = createTextPanel({
-    title: "Challenging Assumptions",
-    body: [
-      "Everyone said normal people can't compete in quantitative finance.",
-      "",
-      "I treated that as a hypothesis, not a limitation.",
-      "",
-      "Click the glass wall to break through doubt.",
-    ],
-    width: 8,
-    height: 4.5,
-  });
-  descPanel.position.set(0, 3, 5);
-  group.add(descPanel);
+  // === LIGHTING ===
 
-  // Dim lighting
-  const ambientLight = new THREE.AmbientLight(0x4a4a4a, 0.3);
+  // Bright office lighting
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
   scene.add(ambientLight);
 
-  const spotLight = new THREE.SpotLight(0xff6666, 0.8, 30, Math.PI / 6);
-  spotLight.position.set(0, 10, 0);
-  scene.add(spotLight);
+  // Overhead lights
+  const ceilingLight1 = new THREE.PointLight(0xffffff, 1.5, 25);
+  ceilingLight1.position.set(-5, 8, -10);
+  scene.add(ceilingLight1);
+
+  const ceilingLight2 = new THREE.PointLight(0xffffff, 1.5, 25);
+  ceilingLight2.position.set(5, 8, -10);
+  scene.add(ceilingLight2);
+
+  // Directional light (window light)
+  const sunLight = new THREE.DirectionalLight(0xfff8e7, 0.8);
+  sunLight.position.set(10, 15, 0);
+  scene.add(sunLight);
+
+  // Spotlight on stonks head
+  const stonksSpot = new THREE.SpotLight(0xffd700, 0.5, 15, Math.PI / 6);
+  stonksSpot.position.set(3, 6, -10);
+  stonksSpot.target.position.set(3, 2, -12);
+  scene.add(stonksSpot);
+  scene.add(stonksSpot.target);
 
   rooms.push({
     id: "room2",
     group,
     spawn: new THREE.Vector3(0, EYE_HEIGHT, -200),
     update: (time, delta) => {
-      // If glass wall clicked, animate breaking
-      if (glassWall.userData.broken) {
-        glassWall.userData.crackProgress += delta * 2;
-
-        // Fade out glass
-        glassMaterial.opacity = Math.max(0, 0.3 - glassWall.userData.crackProgress * 0.5);
-
-        // Brighten hallway
-        hallwayLight.intensity = Math.min(2, glassWall.userData.crackProgress * 2);
-        hallwayFloor.visible = glassWall.userData.crackProgress > 0.5;
-
-        // Remove glass when fully broken
-        if (glassWall.userData.crackProgress > 1 && glassWall.visible) {
-          glassWall.visible = false;
-        }
-      }
-
-      // Pulse warning text
+      // Animate stonks head
       group.traverse((child) => {
-        if (child.material && child.material.emissive) {
-          const pulse = 0.3 + Math.sin(time * 3 + child.position.z) * 0.2;
-          child.material.emissiveIntensity = pulse;
+        if (child.name === 'stonksHead') {
+          // Rotate
+          child.rotation.y += delta * child.userData.rotationSpeed;
+
+          // Bob up and down
+          const bobOffset = Math.sin(time * child.userData.bobSpeed) * child.userData.bobAmount;
+          child.position.y = 2 + bobOffset;
         }
       });
     },
