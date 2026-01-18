@@ -82,10 +82,11 @@ export function createRoom3(scene, rooms, spellTargets) {
   // === CLICKABLE BUTTON ABOVE MICROSCOPE ===
 
   const buttonGroup = new THREE.Group();
+  buttonGroup.userData.isViewButton = true; // Mark the entire group
 
-  // Button base (clickable)
+  // Button base (clickable) - LARGER for easier clicking
   const button = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.3, 0.3, 0.1, 32),
+    new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32),
     new THREE.MeshStandardMaterial({
       color: 0xff4444,
       emissive: 0xff0000,
@@ -99,6 +100,7 @@ export function createRoom3(scene, rooms, spellTargets) {
   button.userData.isViewButton = true; // Mark as the view button
   buttonGroup.add(button);
   spellTargets.push(button);
+  spellTargets.push(buttonGroup); // Add group too
 
   // Button label
   const canvas = document.createElement('canvas');

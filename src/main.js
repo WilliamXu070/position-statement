@@ -118,21 +118,39 @@ let planktonVisible = false;
 
 // Click handler for VIEW button in Room 3
 renderer.domElement.addEventListener("click", () => {
-  if (!controls.isLocked) return;
+  if (!controls.isLocked) {
+    console.log('Click ignored - controls not locked');
+    return;
+  }
 
-  // Raycast to detect clicks on objects
-  const raycaster = new THREE.Raycaster();
-  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-  const intersects = raycaster.intersectObjects(spellTargets, true);
+  // Raycast from camera center to detect clicks on objects
+  const clickRaycaster = new THREE.Raycaster();
+  clickRaycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+  const intersects = clickRaycaster.intersectObjects(spellTargets, true);
+
+  console.log(`Click detected. Intersects: ${intersects.length}, Room: ${currentRoomIndex}`);
 
   if (intersects.length > 0) {
     const clickedObject = intersects[0].object;
+    console.log('Clicked object:', clickedObject.userData);
 
     // Check if clicked object is the VIEW button
     if (clickedObject.userData.isViewButton) {
       planktonVisible = true;
       planktonOverlay.classList.remove("hidden");
       console.log('🔬 Showing plankton view');
+    } else {
+      // Check parent objects for the button flag
+      let parent = clickedObject.parent;
+      while (parent) {
+        if (parent.userData && parent.userData.isViewButton) {
+          planktonVisible = true;
+          planktonOverlay.classList.remove("hidden");
+          console.log('🔬 Showing plankton view (via parent)');
+          break;
+        }
+        parent = parent.parent;
+      }
     }
   }
 });
