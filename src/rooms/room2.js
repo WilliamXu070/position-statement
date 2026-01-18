@@ -220,7 +220,7 @@ export function createRoom2(scene, rooms, spellTargets) {
 
       // Small stonks head on table
       stonksHead.position.set(0, 1.5, -12);
-      stonksHead.scale.set(0.3, 0.3, 0.3); // Small
+      stonksHead.scale.set(0.003, 0.003, 0.003); // Small
 
       group.add(stonksHead);
 
@@ -308,21 +308,22 @@ export function createRoom2(scene, rooms, spellTargets) {
 
   // === LIGHTING ===
 
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  // Very low ambient light to avoid washing out
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
   scene.add(ambientLight);
 
-  // Ceiling lights
-  const ceilingLight1 = new THREE.PointLight(0xffffff, 1.0, 20);
+  // Ceiling lights - directional from above
+  const ceilingLight1 = new THREE.PointLight(0xffffff, 0.6, 20);
   ceilingLight1.position.set(-5, 5.5, -12);
   scene.add(ceilingLight1);
 
-  const ceilingLight2 = new THREE.PointLight(0xffffff, 1.0, 20);
+  const ceilingLight2 = new THREE.PointLight(0xffffff, 0.6, 20);
   ceilingLight2.position.set(5, 5.5, -12);
   scene.add(ceilingLight2);
 
-  // Spotlight on stonks head
-  const stonksSpot = new THREE.SpotLight(0xffd700, 0.8, 10, Math.PI / 8);
-  stonksSpot.position.set(0, 4, -12);
+  // Single overhead spotlight on stonks head (white light from above)
+  const stonksSpot = new THREE.SpotLight(0xffffff, 1.2, 10, Math.PI / 6);
+  stonksSpot.position.set(0, 5, -12);
   stonksSpot.target.position.set(0, 1.5, -12);
   scene.add(stonksSpot);
   scene.add(stonksSpot.target);
