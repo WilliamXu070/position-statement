@@ -9,8 +9,8 @@ export function createRoom2(scene, rooms, spellTargets) {
   group.position.set(0, 0, -200);
 
   // Corporate office lighting
-  scene.background = new THREE.Color(0x87ceeb);
-  scene.fog = new THREE.Fog(0xb0d8f0, 20, 60);
+  scene.background = new THREE.Color(0x4a5a6a); // Darker neutral gray-blue
+  scene.fog = new THREE.Fog(0x4a5a6a, 20, 60);
 
   // Simple floor as fallback
   const platform = new THREE.Mesh(
@@ -37,7 +37,7 @@ export function createRoom2(scene, rooms, spellTargets) {
 
       // Position and scale the meeting room
       meetingRoom.position.set(0, 0, -10);
-      meetingRoom.scale.set(2, 2, 2);
+      meetingRoom.scale.set(10, 10, 10);
 
       group.add(meetingRoom);
 
@@ -134,21 +134,21 @@ export function createRoom2(scene, rooms, spellTargets) {
 
   // === LIGHTING ===
 
-  // Bright office lighting
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+  // Ambient office lighting (reduced from 0.7 to 0.4)
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
   scene.add(ambientLight);
 
-  // Overhead lights
-  const ceilingLight1 = new THREE.PointLight(0xffffff, 1.5, 25);
+  // Overhead lights (reduced from 1.5 to 0.8)
+  const ceilingLight1 = new THREE.PointLight(0xffffff, 0.8, 25);
   ceilingLight1.position.set(-5, 8, -10);
   scene.add(ceilingLight1);
 
-  const ceilingLight2 = new THREE.PointLight(0xffffff, 1.5, 25);
+  const ceilingLight2 = new THREE.PointLight(0xffffff, 0.8, 25);
   ceilingLight2.position.set(5, 8, -10);
   scene.add(ceilingLight2);
 
-  // Directional light (window light)
-  const sunLight = new THREE.DirectionalLight(0xfff8e7, 0.8);
+  // Directional light (window light) - reduced from 0.8 to 0.5
+  const sunLight = new THREE.DirectionalLight(0xfff8e7, 0.5);
   sunLight.position.set(10, 15, 0);
   scene.add(sunLight);
 
