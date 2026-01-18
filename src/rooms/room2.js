@@ -8,9 +8,9 @@ export function createRoom2(scene, rooms, spellTargets) {
   const group = new THREE.Group();
   group.position.set(0, 0, -200);
 
-  // Enclosed room atmosphere
-  scene.background = new THREE.Color(0x3a3a3a);
-  scene.fog = new THREE.Fog(0x3a3a3a, 15, 40);
+  // Dark room atmosphere (like reference image)
+  scene.background = new THREE.Color(0x1a1a1a);
+  scene.fog = new THREE.Fog(0x1a1a1a, 15, 40);
 
   // === ROOM STRUCTURE ===
 
@@ -308,25 +308,24 @@ export function createRoom2(scene, rooms, spellTargets) {
 
   // === LIGHTING ===
 
-  // Very low ambient light to avoid washing out
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+  // Very minimal ambient light to prevent complete blackness
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
   scene.add(ambientLight);
 
-  // Ceiling lights - directional from above
-  const ceilingLight1 = new THREE.PointLight(0xffffff, 0.6, 20);
-  ceilingLight1.position.set(-5, 5.5, -12);
-  scene.add(ceilingLight1);
+  // Main directional light from upper front-left (like reference image)
+  const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  mainLight.position.set(-3, 6, -8);
+  scene.add(mainLight);
 
-  const ceilingLight2 = new THREE.PointLight(0xffffff, 0.6, 20);
-  ceilingLight2.position.set(5, 5.5, -12);
-  scene.add(ceilingLight2);
+  // Subtle fill light from right to soften shadows
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+  fillLight.position.set(3, 4, -10);
+  scene.add(fillLight);
 
-  // Single overhead spotlight on stonks head (white light from above)
-  const stonksSpot = new THREE.SpotLight(0xffffff, 1.2, 10, Math.PI / 6);
-  stonksSpot.position.set(0, 5, -12);
-  stonksSpot.target.position.set(0, 1.5, -12);
-  scene.add(stonksSpot);
-  scene.add(stonksSpot.target);
+  // Single overhead point light for room illumination
+  const ceilingLight = new THREE.PointLight(0xffffff, 0.5, 25);
+  ceilingLight.position.set(0, 5.5, -12);
+  scene.add(ceilingLight);
 
   rooms.push({
     id: "room2",
