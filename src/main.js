@@ -4,7 +4,7 @@ import { EYE_HEIGHT, GRAVITY, JUMP_VELOCITY, GROUND_HEIGHT } from "./constants.j
 import { initTextureSystem } from "./utils/textures.js";
 import { initTextPanelSystem } from "./utils/textPanel.js";
 import { createWand, createLightningBeam, getSpellHit } from "./core/spells.js";
-import { initAudioSystem, loadRoomAudio, playRoomAudio } from "./core/audio.js";
+import { initAudioSystem, loadRoomAudio, playRoomAudio, pauseRoomAudio, resumeRoomAudio } from "./core/audio.js";
 import { ROOM_CONFIGS } from "./rooms/roomConfig.js";
 import { createRoom1 } from "./rooms/room1.js";
 import { createRoom2 } from "./rooms/room2.js";
@@ -57,7 +57,45 @@ rollGroup.add(camera);
 pitchObject.add(rollGroup);
 
 startButton.addEventListener("click", () => {
-  controls.lock();
+  console.log('🖱️ Start button clicked');
+
+  // Resume audio context (required by browsers for autoplay)
+  if (audioListener.context.state === 'suspended') {
+    audioListener.context.resume().then(() => {
+      console.log('🔊 Audio context resumed');
+    });
+  }
+
+  // Check if already locked
+  if (document.pointerLockElement === renderer.domElement) {
+    console.log('⚠️ Pointer already locked, skipping');
+    return;
+  }
+
+  // Check cooldown period to prevent browser security blocking
+  const timeSinceUnlock = Date.now() - lastUnlockTime;
+
+  if (timeSinceUnlock < LOCK_COOLDOWN && lastUnlockTime > 0) {
+    // Wait for cooldown to complete before requesting lock
+    const remainingCooldown = LOCK_COOLDOWN - timeSinceUnlock;
+    console.log(`⏱️ Waiting ${remainingCooldown}ms for browser security cooldown...`);
+
+    setTimeout(() => {
+      console.log('🔒 Requesting pointer lock after cooldown');
+      try {
+        controls.lock();
+      } catch (error) {
+        console.error('❌ Lock failed:', error);
+      }
+    }, remainingCooldown);
+  } else {
+    console.log('🔒 Requesting pointer lock...');
+    try {
+      controls.lock();
+    } catch (error) {
+      console.error('❌ Lock failed:', error);
+    }
+  }
 });
 
 const baseFov = camera.fov;
@@ -72,14 +110,51 @@ restartButton.addEventListener("click", () => {
   controls.lock();
 });
 
+let firstLock = true;
+let lastUnlockTime = 0;
+const LOCK_COOLDOWN = 150; // ms - minimum time between unlock and re-lock
+
 controls.addEventListener("lock", () => {
+  console.log('🔒 Lock event fired');
   overlay.style.display = "none";
   jailOverlay.classList.add("hidden");
+
+  // Play audio on first lock (when user clicks Start)
+  if (firstLock) {
+    firstLock = false;
+    // Small delay to ensure audio context is ready
+    setTimeout(() => {
+      playRoomAudio(ROOM_CONFIGS[currentRoomIndex].id);
+      console.log('🎵 Starting audio for room', currentRoomIndex + 1);
+    }, 100);
+  } else {
+    // Resume audio when re-locking (after pressing Escape)
+    resumeRoomAudio();
+  }
 });
 
 controls.addEventListener("unlock", () => {
+  console.log('🔓 Unlock event fired');
+  lastUnlockTime = Date.now(); // Track when unlock happened
+
   if (jailOverlay.classList.contains("hidden")) {
     overlay.style.display = "grid";
+  }
+
+  // Pause audio when user presses Escape
+  pauseRoomAudio();
+});
+
+// Add error handler for pointer lock failures
+document.addEventListener('pointerlockerror', () => {
+  console.error('❌ Pointer lock error - browser security blocked the request');
+});
+
+document.addEventListener('pointerlockchange', () => {
+  if (document.pointerLockElement === renderer.domElement) {
+    console.log('✅ Pointer locked successfully');
+  } else {
+    console.log('🔓 Pointer unlocked');
   }
 });
 

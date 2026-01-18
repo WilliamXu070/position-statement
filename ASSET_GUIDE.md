@@ -151,6 +151,45 @@ loader.load(
 );
 ```
 
+### Converting STEP Files to GLB
+
+**Three.js does NOT support STEP format directly.** If you have a STEP file (.step, .stp), convert it first:
+
+#### Method 1: Using Blender (Free, Best Quality)
+1. Download Blender: https://www.blender.org/
+2. Enable CAD Import addon:
+   - Edit → Preferences → Add-ons
+   - Enable "Import CAD Formats"
+3. Import: File → Import → STEP (.stp)
+4. Export: File → Export → glTF 2.0 (.glb)
+   - Choose "glTF Binary (.glb)" format
+
+#### Method 2: Online Converters (Quick)
+- **AnyConv**: https://anyconv.com/step-to-gltf-converter/
+- **Aspose**: https://products.aspose.app/3d/conversion/step-to-gltf
+- Upload STEP → Download GLB
+
+#### Method 3: CAD Software
+If you have Fusion 360, SolidWorks, etc.:
+- Open STEP file
+- Export as OBJ or STL
+- Then convert OBJ → GLB in Blender
+
+### OBJLoader (Alternative)
+
+If you have an OBJ file instead:
+
+```javascript
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+
+const loader = new OBJLoader();
+loader.load('models/microscope.obj', (object) => {
+  object.position.set(0, 1, -5);
+  object.scale.set(0.5, 0.5, 0.5);
+  group.add(object);
+});
+```
+
 ### Where to Put Assets
 
 ```

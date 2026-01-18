@@ -16,6 +16,8 @@ const mimeTypes = {
   ".jpeg": "image/jpeg",
   ".mp3": "audio/mpeg",
   ".m4a": "audio/mp4",
+  ".gltf": "model/gltf+json",
+  ".glb": "model/gltf-binary",
 };
 
 const server = http.createServer((req, res) => {

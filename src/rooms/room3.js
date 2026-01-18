@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { EYE_HEIGHT } from "../constants.js";
 import { createTextPanel } from "../utils/textPanel.js";
 
@@ -86,30 +87,39 @@ export function createRoom3(scene, rooms, spellTargets) {
 
   // === RIGHT SIDE: Workshop/Application ===
 
-  // Placeholder for microscope model
-  const phoneMaterial = new THREE.MeshStandardMaterial({
-    color: 0x2a2a2a,
-    roughness: 0.3,
-    metalness: 0.7,
-  });
-  const phone = new THREE.Mesh(
-    new THREE.BoxGeometry(0.8, 1.6, 0.15),
-    phoneMaterial
-  );
-  phone.position.set(6, 1.5, -5);
-  group.add(phone);
+  // Load microscope GLTF model
+  const loader = new GLTFLoader();
+  loader.load(
+    'models/microscope.gltf',
+    (gltf) => {
+      const microscope = gltf.scene;
+      // Position and scale the microscope (adjust these values as needed)
+      microscope.position.set(6, 0.5, -5);
+      microscope.scale.set(50, 50, 50); // Start with this scale, adjust if too big/small
+      microscope.rotation.y = Math.PI / 4; // Rotate 45° for better view
+      group.add(microscope);
 
-  // Microscope lens attachment
-  const microscopeLens = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.3, 0.3, 0.5, 16),
-    new THREE.MeshStandardMaterial({
-      color: 0x6a6a6a,
-      roughness: 0.4,
-      metalness: 0.8,
-    })
+      // Make it clickable for interactions
+      microscope.traverse((child) => {
+        if (child.isMesh) {
+          spellTargets.push(child);
+        }
+      });
+    },
+    (progress) => {
+      console.log('Loading microscope:', (progress.loaded / progress.total * 100).toFixed(2) + '%');
+    },
+    (error) => {
+      console.error('Error loading microscope model:', error);
+      // Fallback to placeholder if model fails to load
+      const placeholder = new THREE.Mesh(
+        new THREE.BoxGeometry(0.8, 1.6, 0.15),
+        new THREE.MeshStandardMaterial({ color: 0x2a2a2a })
+      );
+      placeholder.position.set(6, 1, -5);
+      group.add(placeholder);
+    }
   );
-  microscopeLens.position.set(6, 0.5, -4.8);
-  group.add(microscopeLens);
 
   // Small stand
   const stand = new THREE.Mesh(
@@ -185,8 +195,6 @@ export function createRoom3(scene, rooms, spellTargets) {
     spawn: new THREE.Vector3(0, EYE_HEIGHT, -400),
     update: (time, delta) => {
       lens.rotation.x += delta * 0.5;
-      const pulse = 1 + Math.sin(time * 2) * 0.05;
-      microscopeLens.scale.set(pulse, pulse, pulse);
 
       if (blueprintPanel.userData.animated) {
         blueprintPanel.material.emissiveIntensity = 0.3 + Math.sin(time * 3) * 0.2;
