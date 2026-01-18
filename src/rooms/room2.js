@@ -212,32 +212,69 @@ export function createRoom2(scene, rooms, spellTargets) {
 
   // === SMALL STONKS HEAD ON TABLE ===
 
-  loader.load(
-    'models/stonks_head.glb',
-    (gltf) => {
-      const stonksHead = gltf.scene;
-      stonksHead.name = 'stonksHead';
+  // Load cloth texture for stonks head
+  textureLoader.load(
+    'textures/cloth/cloth.jpg',
+    (clothTexture) => {
+      // Load stonks head model
+      loader.load(
+        'models/stonks_head.glb',
+        (gltf) => {
+          const stonksHead = gltf.scene;
+          stonksHead.name = 'stonksHead';
 
-      // Small stonks head on table
-      stonksHead.position.set(0, 1.5, -12);
-      stonksHead.scale.set(0.003, 0.003, 0.003); // Small
+          // Small stonks head on table
+          stonksHead.position.set(0, 1.5, -12);
+          stonksHead.scale.set(0.006, 0.006, 0.006); // Small
 
-      group.add(stonksHead);
+          // Apply cloth texture to all meshes
+          stonksHead.traverse((child) => {
+            if (child.isMesh) {
+              child.material = new THREE.MeshStandardMaterial({
+                map: clothTexture,
+                roughness: 0.8,
+                metalness: 0.1,
+              });
+              spellTargets.push(child);
+            }
+          });
 
-      stonksHead.traverse((child) => {
-        if (child.isMesh) {
-          spellTargets.push(child);
+          group.add(stonksHead);
+
+          // Animation properties
+          stonksHead.userData.rotationSpeed = 1.0;
+
+          console.log('✅ Loaded small stonks head with cloth texture');
+        },
+        undefined,
+        (error) => {
+          console.error('❌ Error loading stonks head:', error);
         }
-      });
-
-      // Animation properties
-      stonksHead.userData.rotationSpeed = 1.0;
-
-      console.log('✅ Loaded small stonks head on table');
+      );
     },
     undefined,
     (error) => {
-      console.error('❌ Error loading stonks head:', error);
+      console.error('❌ Error loading cloth texture:', error);
+      // Load model without texture if cloth texture fails
+      loader.load(
+        'models/stonks_head.glb',
+        (gltf) => {
+          const stonksHead = gltf.scene;
+          stonksHead.name = 'stonksHead';
+          stonksHead.position.set(0, 1.5, -12);
+          stonksHead.scale.set(0.006, 0.006, 0.006);
+          group.add(stonksHead);
+
+          stonksHead.traverse((child) => {
+            if (child.isMesh) {
+              spellTargets.push(child);
+            }
+          });
+
+          stonksHead.userData.rotationSpeed = 1.0;
+          console.log('✅ Loaded stonks head (without texture)');
+        }
+      );
     }
   );
 
@@ -318,7 +355,7 @@ export function createRoom2(scene, rooms, spellTargets) {
   scene.add(mainLight);
 
   // Subtle fill light from right to soften shadows
-  const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.03);
   fillLight.position.set(3, 4, -10);
   scene.add(fillLight);
 
