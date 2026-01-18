@@ -111,6 +111,32 @@ restartButton.addEventListener("click", () => {
   controls.lock();
 });
 
+// === PLANKTON OVERLAY SYSTEM ===
+
+const planktonOverlay = document.getElementById("plankton-overlay");
+let planktonVisible = false;
+
+// Click handler for VIEW button in Room 3
+renderer.domElement.addEventListener("click", () => {
+  if (!controls.isLocked) return;
+
+  // Raycast to detect clicks on objects
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+  const intersects = raycaster.intersectObjects(spellTargets, true);
+
+  if (intersects.length > 0) {
+    const clickedObject = intersects[0].object;
+
+    // Check if clicked object is the VIEW button
+    if (clickedObject.userData.isViewButton) {
+      planktonVisible = true;
+      planktonOverlay.classList.remove("hidden");
+      console.log('🔬 Showing plankton view');
+    }
+  }
+});
+
 let firstLock = true;
 let lastUnlockTime = 0;
 const LOCK_COOLDOWN = 150; // ms - minimum time between unlock and re-lock
@@ -252,6 +278,13 @@ function teleportToRoom(index) {
 
   // Clear collision boxes from previous room
   clearCollisions();
+
+  // Hide plankton overlay when changing rooms
+  if (planktonVisible) {
+    planktonVisible = false;
+    planktonOverlay.classList.add("hidden");
+    console.log('🔬 Hiding plankton view (room change)');
+  }
 
   roomLabel.textContent = ROOM_CONFIGS[index].label;
 
