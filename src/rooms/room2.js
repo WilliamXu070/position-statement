@@ -176,11 +176,12 @@ export function createRoom2(scene, rooms, spellTargets) {
 
   // === LOAD MULTIPLE BUSINESSMEN ===
 
+  const labelTexture = createAssumingLabelTexture();
   const businessmenPositions = [
-    { pos: [-4, 0, -15], rot: Math.PI / 6, scale: 1.2 },
-    { pos: [4, 0, -15], rot: -Math.PI / 6, scale: 1.2 },
-    { pos: [-3, 0, -9], rot: Math.PI / 3, scale: 1.2 },
-    { pos: [3, 0, -9], rot: -Math.PI / 3, scale: 1.2 },
+    { pos: [-4, 0, -15], scale: 1.2, focus: new THREE.Vector3(-0.8, 1.5, -12.2) },
+    { pos: [4, 0, -15], scale: 1.2, focus: new THREE.Vector3(0.8, 1.5, -12.2) },
+    { pos: [-3, 0, -9], scale: 1.2, focus: new THREE.Vector3(-0.8, 1.5, -11.8) },
+    { pos: [3, 0, -9], scale: 1.2, focus: new THREE.Vector3(0.8, 1.5, -11.8) },
   ];
 
   businessmenPositions.forEach((config, index) => {
@@ -191,7 +192,23 @@ export function createRoom2(scene, rooms, spellTargets) {
         businessman.name = `businessman${index}`;
         businessman.position.set(...config.pos);
         businessman.scale.set(config.scale, config.scale, config.scale);
-        businessman.rotation.y = config.rot;
+        businessman.lookAt(config.focus);
+        businessman.rotation.x = 0;
+        businessman.rotation.z = 0;
+
+        const labelSprite = new THREE.Sprite(
+          new THREE.SpriteMaterial({
+            map: labelTexture,
+            transparent: true,
+            depthTest: false,
+          })
+        );
+        const bounds = new THREE.Box3().setFromObject(businessman);
+        const labelOffsetY = bounds.max.y - businessman.position.y + 0.3;
+        labelSprite.position.set(0, labelOffsetY, 0);
+        labelSprite.scale.set(1.6, 0.6, 1);
+        labelSprite.renderOrder = 2;
+        businessman.add(labelSprite);
 
         group.add(businessman);
 
@@ -209,6 +226,38 @@ export function createRoom2(scene, rooms, spellTargets) {
       }
     );
   });
+
+  function createAssumingLabelTexture() {
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 96;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "rgba(184, 91, 59, 0.9)";
+    ctx.beginPath();
+    const radius = 18;
+    ctx.moveTo(radius, 0);
+    ctx.lineTo(canvas.width - radius, 0);
+    ctx.quadraticCurveTo(canvas.width, 0, canvas.width, radius);
+    ctx.lineTo(canvas.width, canvas.height - radius);
+    ctx.quadraticCurveTo(canvas.width, canvas.height, canvas.width - radius, canvas.height);
+    ctx.lineTo(radius, canvas.height);
+    ctx.quadraticCurveTo(0, canvas.height, 0, canvas.height - radius);
+    ctx.lineTo(0, radius);
+    ctx.quadraticCurveTo(0, 0, radius, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.font = "700 40px Georgia";
+    ctx.fillStyle = "#fff4ea";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("ASSUMING", canvas.width / 2, canvas.height / 2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    return texture;
+  }
 
   // === SMALL STONKS HEAD ON TABLE ===
 

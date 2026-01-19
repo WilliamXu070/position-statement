@@ -5,7 +5,20 @@ import { EYE_HEIGHT, GRAVITY, JUMP_VELOCITY, GROUND_HEIGHT } from "./constants.j
 import { initTextureSystem } from "./utils/textures.js";
 import { initTextPanelSystem } from "./utils/textPanel.js";
 import { createWand, createLightningBeam, getSpellHit } from "./core/spells.js";
-import { initAudioSystem, loadRoomAudio, playRoomAudio, pauseRoomAudio, resumeRoomAudio } from "./core/audio.js";
+import {
+  initAudioSystem,
+  loadRoomAudio,
+  loadBossSting,
+  playBossSting,
+  stopBossSting,
+  playRoomAudio,
+  pauseRoomAudio,
+  resumeRoomAudio,
+  stopRoomAudio,
+  getRoomAudioTime,
+  getRoomAudioDuration,
+} from "./core/audio.js";
+import { initSubtitleSystem, setActiveRoom, updateSubtitles } from "./core/subtitles.js";
 import { checkCollision, clearCollisions } from "./core/collision.js";
 import { ROOM_CONFIGS } from "./rooms/roomConfig.js";
 import { createRoom1 } from "./rooms/room1.js";
@@ -41,6 +54,7 @@ camera.add(audioListener);
 initTextureSystem(renderer, textureLoader);
 initTextPanelSystem(renderer);
 initAudioSystem(audioListener, audioLoader);
+loadBossSting("why-do-i-hear-boss-music.mp3");
 
 // ===== CONTROLS =====
 
@@ -52,11 +66,26 @@ const roomLabel = document.getElementById("room-label");
 const restartButton = document.getElementById("restart");
 const jailMessage = document.getElementById("jail-message");
 const jailOverlay = document.getElementById("jail");
+const subtitleText = document.getElementById("subtitle-text");
+const subtitleBar = document.getElementById("subtitle-bar");
+const bossOverlay = document.getElementById("boss-overlay");
+const bossTitle = document.getElementById("boss-title");
 const pitchObject = controls.getObject().children[0] ?? controls.getObject();
 const rollGroup = new THREE.Group();
 pitchObject.remove(camera);
 rollGroup.add(camera);
 pitchObject.add(rollGroup);
+
+initSubtitleSystem({
+  subtitleTextEl: subtitleText,
+  getRoomAudioTime,
+  getRoomAudioDuration,
+});
+
+const INTRO_DURATION = 1350;
+let introTimeout = null;
+let pendingIntroRoom = null;
+let bossStingTimeout = null;
 
 startButton.addEventListener("click", () => {
   console.log('🖱️ Start button clicked');
@@ -65,6 +94,9 @@ startButton.addEventListener("click", () => {
   if (audioListener.context.state === 'suspended') {
     audioListener.context.resume().then(() => {
       console.log('🔊 Audio context resumed');
+      if (pendingIntroRoom) {
+        triggerRoomIntro(pendingIntroRoom);
+      }
     });
   }
 
@@ -287,14 +319,14 @@ controls.addEventListener("lock", () => {
   overlay.style.display = "none";
   jailOverlay.classList.add("hidden");
 
+  if (pendingIntroRoom && audioListener.context.state !== "suspended") {
+    triggerRoomIntro(pendingIntroRoom);
+  }
+
   // Play audio on first lock (when user clicks Start)
   if (firstLock) {
     firstLock = false;
-    // Small delay to ensure audio context is ready
-    setTimeout(() => {
-      playRoomAudio(ROOM_CONFIGS[currentRoomIndex].id);
-      console.log('🎵 Starting audio for room', currentRoomIndex + 1);
-    }, 100);
+    queueRoomIntro(ROOM_CONFIGS[currentRoomIndex]);
   } else {
     // Resume audio when re-locking (after pressing Escape)
     resumeRoomAudio();
@@ -305,8 +337,10 @@ controls.addEventListener("unlock", () => {
   console.log('🔓 Unlock event fired');
   lastUnlockTime = Date.now(); // Track when unlock happened
 
-  if (jailOverlay.classList.contains("hidden")) {
+  if (jailOverlay.classList.contains("hidden") && !fpOverlayActive) {
     overlay.style.display = "grid";
+  } else if (fpOverlayActive) {
+    overlay.style.display = "none";
   }
 
   // Pause audio when user presses Escape (but not for Room 3 overlay)
@@ -472,17 +506,25 @@ function teleportToRoom(index) {
     showFPOverlay();
   } else if (fpOverlayActive) {
     hideFPOverlay();
+    if (document.pointerLockElement !== renderer.domElement) {
+      overlay.style.display = "none";
+      try {
+        controls.lock();
+      } catch (error) {
+        console.error('❌ Lock failed:', error);
+      }
+    }
   }
 
   roomLabel.textContent = ROOM_CONFIGS[index].label;
+  setActiveRoom(ROOM_CONFIGS[index]);
 
   // Hide all rooms, show current
   roomGroups.forEach((group, i) => {
     group.visible = i === index;
   });
 
-  // Play room audio
-  playRoomAudio(ROOM_CONFIGS[index].id);
+  queueRoomIntro(ROOM_CONFIGS[index]);
 
   // Update spell targets
   spellTargets.length = 0;
@@ -495,6 +537,51 @@ function teleportToRoom(index) {
   }
 
   roomTransitioning = false;
+}
+
+function queueRoomIntro(roomConfig) {
+  pendingIntroRoom = roomConfig;
+  if (controls.isLocked && audioListener.context.state !== "suspended") {
+    triggerRoomIntro(roomConfig);
+  }
+}
+
+function triggerRoomIntro(roomConfig) {
+  if (!roomConfig) {
+    return;
+  }
+
+  if (introTimeout) {
+    clearTimeout(introTimeout);
+  }
+  if (bossStingTimeout) {
+    clearTimeout(bossStingTimeout);
+  }
+
+  pendingIntroRoom = null;
+  stopRoomAudio();
+  playBossSting(INTRO_DURATION, 50);
+
+  if (bossTitle) {
+    bossTitle.textContent = roomConfig.label;
+  }
+
+  if (bossOverlay) {
+    bossOverlay.classList.remove("hidden");
+    bossOverlay.classList.add("active");
+  }
+
+  introTimeout = setTimeout(() => {
+    playRoomAudio(roomConfig.id);
+    if (bossOverlay) {
+      bossOverlay.classList.remove("active");
+      bossOverlay.classList.add("hidden");
+    }
+  }, INTRO_DURATION);
+
+  bossStingTimeout = setTimeout(() => {
+    stopBossSting();
+  }, INTRO_DURATION);
 }
 
 // Start in room 1
@@ -520,12 +607,7 @@ const onKeyDown = (event) => {
       break;
     case "ArrowLeft":
     case "KeyA":
-      if (fpOverlayActive) {
-        // Navigate slides when overlay is active
-        fpGoPrev();
-      } else {
-        move.left = true;
-      }
+      move.left = true;
       break;
     case "ArrowDown":
     case "KeyS":
@@ -541,12 +623,7 @@ const onKeyDown = (event) => {
       break;
     case "ArrowRight":
     case "KeyD":
-      if (fpOverlayActive) {
-        // Navigate slides when overlay is active
-        fpGoNext();
-      } else {
-        move.right = true;
-      }
+      move.right = true;
       break;
     case "Digit1":
       spellInput.lightning = true;
@@ -559,6 +636,11 @@ const onKeyDown = (event) => {
       if (!checkViewButton()) {
         // If not looking at VIEW button, check for code blocks (Room 4)
         checkCodeBlockInteraction();
+      }
+      break;
+    case "KeyC":
+      if (subtitleBar) {
+        subtitleBar.classList.toggle("hidden");
       }
       break;
     case "Space":
@@ -841,6 +923,7 @@ function animate() {
   updateWand(time, delta);
   updateLightning(delta);
   updateEffects(delta);
+  updateSubtitles();
 
   // Update interaction prompt based on what we're looking at
   updateInteractionPrompt();

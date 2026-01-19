@@ -19,20 +19,20 @@
     <div id="hud">
       <div class="title">Enacting change, one dent at a time</div>
       <div class="subtitle">
-        WASD to move. Mouse to look. Space to jump. E to interact. ↑/↓ arrows to navigate rooms. 1 to cast lightning. H to return to center.
+        WASD to move. Mouse to look. Space to jump. E to interact. ↑/↓ arrows to navigate rooms. 1 to cast lightning. H to return to center. C to toggle subtitles.
       </div>
       <div id="room-label"></div>
     </div>
 
     <div id="overlay">
       <div class="overlay-card">
-        <h1>Enter the story rooms</h1>
+        <h1>Enter the mind of William Xu</h1>
         <p>
-          This is a first-person, storybook walkthrough. Each room contains a
-          section of the position statement placed on the walls.
+          This is a first-person, storybook walkthrough. Each room represents a
+          section of the position statement, feel free to walk around and interact.
         </p>
-        <p>Click to lock the pointer and begin.</p>
-        <button id="start">Start</button>
+        <p>Click "START" to lock the pointer and begin.</p>
+        <button id="start">START</button>
       </div>
     </div>
 
@@ -77,6 +77,18 @@
           </button>
         </div>
       </div>
+    </div>
+
+    <div id="boss-overlay" class="hidden" aria-hidden="true">
+      <div class="boss-card">
+        <span class="boss-line"></span>
+        <span id="boss-title"></span>
+        <span class="boss-line"></span>
+      </div>
+    </div>
+
+    <div id="subtitle-bar" aria-live="polite" aria-atomic="true">
+      <div id="subtitle-text"></div>
     </div>
 
     <script type="module" src="src/main.js"></script>

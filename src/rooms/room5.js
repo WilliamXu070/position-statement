@@ -142,11 +142,11 @@ export function createRoom5(scene, rooms, spellTargets) {
   traveler.position.copy(root.position);
   group.add(traveler);
 
-  // Video screen below the tree (initially hidden)
+  // Video screen in front of the tree (initially hidden)
   const video = document.createElement('video');
   video.src = 'Wicker.mov';
   video.muted = true;
-  video.loop = false;
+  video.loop = true;
   video.playsInline = true;
   video.crossOrigin = 'anonymous';
 
@@ -157,13 +157,13 @@ export function createRoom5(scene, rooms, spellTargets) {
   const screenGeometry = new THREE.PlaneGeometry(8, 4.5);
   const screenMaterial = new THREE.MeshBasicMaterial({
     map: videoTexture,
-    side: THREE.DoubleSide,
+    side: THREE.FrontSide,
     transparent: true,
     opacity: 0, // Start invisible
   });
 
   const videoScreen = new THREE.Mesh(screenGeometry, screenMaterial);
-  videoScreen.position.set(0, -2, -6); // Below tree, in front (closer to player)
+  videoScreen.position.set(0, 3, -6); // In front of tree, closer to eye level
   videoScreen.rotation.x = 0; // Face forward
   videoScreen.visible = false; // Initially hidden
   group.add(videoScreen);
@@ -178,7 +178,7 @@ export function createRoom5(scene, rooms, spellTargets) {
     opacity: 0,
   });
   const frame = new THREE.Mesh(frameGeometry, frameMaterial);
-  frame.position.set(0, -2, -6.05); // Behind screen
+  frame.position.set(0, 1.6, -6.05); // Behind screen
   frame.visible = false; // Initially hidden
   group.add(frame);
 
@@ -213,7 +213,7 @@ export function createRoom5(scene, rooms, spellTargets) {
 
   // Video screen light (initially off)
   const videoLight = new THREE.PointLight(0xffffff, 0, 15);
-  videoLight.position.set(0, -2, -4);
+  videoLight.position.set(0, 1.6, -4);
   scene.add(videoLight);
 
   // Store light reference
