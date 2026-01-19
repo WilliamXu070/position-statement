@@ -52,7 +52,7 @@ export function createRoom4(scene, rooms, spellTargets) {
     const radius = 8 + Math.random() * 3;
     const x = Math.cos(angle) * radius;
     const z = -5 + Math.sin(angle) * radius;
-    const y = 1.5 + Math.random() * 2;
+    const y = 0.6 + Math.random() * 1.4;
 
     codeBlock.position.set(x, y, z);
     codeBlock.rotation.y = -angle + Math.PI / 2 + (Math.random() - 0.5) * 0.5;
@@ -136,7 +136,7 @@ export function createRoom4(scene, rooms, spellTargets) {
   // Calculate target positions for organized line
   const lineTargets = [];
   const lineSpacing = 1.8;
-  const lineY = 2.5;
+  const lineY = 1.6;
   const lineZ = -10;
   const startX = -(codeBlocks.length - 1) * lineSpacing / 2;
 
@@ -161,7 +161,7 @@ export function createRoom4(scene, rooms, spellTargets) {
   const descPanel = createTextPanel({
     title: "Simplicity Over Complexity",
     body: [
-      "Complexity is seductive. It feels comprehensive.",
+      "Complexity is enticing. It feels comprehensive.",
       "",
       "But simplicity is harder — and more powerful.",
       "",
@@ -170,7 +170,7 @@ export function createRoom4(scene, rooms, spellTargets) {
     width: 9,
     height: 4.5,
   });
-  descPanel.position.set(0, 3.5, -12);
+  descPanel.position.set(0, 4.2, -12);
   group.add(descPanel);
 
   // Dim ambient light

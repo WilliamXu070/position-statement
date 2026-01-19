@@ -7,6 +7,7 @@ import { addCollisionBox } from "../core/collision.js";
 export function createRoom6(scene, rooms, spellTargets) {
   const group = new THREE.Group();
   group.position.set(0, 0, -1000);
+  const reflectionOnlyLayer = 1;
 
   // Heavenly sky background (same as Room 1)
   scene.background = new THREE.Color(0x87ceeb);
@@ -15,7 +16,24 @@ export function createRoom6(scene, rooms, spellTargets) {
   // === MARBLE PLATFORM ===
 
   const textureLoader = new THREE.TextureLoader();
+  const bubbleTexture = new THREE.CanvasTexture(document.createElement('canvas'));
+  bubbleTexture.minFilter = THREE.LinearFilter;
+  bubbleTexture.magFilter = THREE.LinearFilter;
+  bubbleTexture.generateMipmaps = false;
   let marbleMaterial;
+
+  textureLoader.load(
+    'bubble.png',
+    (texture) => {
+      const bubbleCanvas = createBubbleCanvas(texture.image);
+      bubbleTexture.image = bubbleCanvas;
+      bubbleTexture.needsUpdate = true;
+    },
+    undefined,
+    () => {
+      console.log('Using fallback bubble texture');
+    }
+  );
 
   textureLoader.load(
     'textures/marble/marble_color.jpg',
@@ -150,11 +168,14 @@ export function createRoom6(scene, rooms, spellTargets) {
     return pillarGroup;
   }
 
+  const platformHalf = 15;
+  const backRowZ = -14;
+
   // Create 4 pillars in square formation around the center
   const pillar1 = createPillar(-8, -8, "Question\nAssumptions");
   const pillar2 = createPillar(8, -8, "First\nPrinciples");
-  const pillar3 = createPillar(-8, -18, "Reduce\nComplexity");
-  const pillar4 = createPillar(8, -18, "Iteration");
+  const pillar3 = createPillar(-8, backRowZ, "Reduce\nComplexity");
+  const pillar4 = createPillar(8, backRowZ, "Iteration");
 
   group.add(pillar1);
   group.add(pillar2);
@@ -163,25 +184,275 @@ export function createRoom6(scene, rooms, spellTargets) {
 
   spellTargets.push(...[pillar1, pillar2, pillar3, pillar4]);
 
+  // === REFLECTION SUMMARY PANELS ===
+
+  function createBubbleCanvas(image) {
+    const canvas = document.createElement('canvas');
+    const width = image.width;
+    const height = image.height;
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    const visited = new Uint8Array(width * height);
+    const stack = [];
+
+    const isWhitePixel = (index) => (
+      data[index] > 240 && data[index + 1] > 240 && data[index + 2] > 240
+    );
+
+    for (let x = 0; x < width; x += 1) {
+      stack.push([x, 0]);
+      stack.push([x, height - 1]);
+    }
+    for (let y = 1; y < height - 1; y += 1) {
+      stack.push([0, y]);
+      stack.push([width - 1, y]);
+    }
+
+    while (stack.length) {
+      const [x, y] = stack.pop();
+      if (x < 0 || x >= width || y < 0 || y >= height) {
+        continue;
+      }
+      const index = y * width + x;
+      if (visited[index]) {
+        continue;
+      }
+      visited[index] = 1;
+      const dataIndex = index * 4;
+      if (!isWhitePixel(dataIndex)) {
+        continue;
+      }
+      data[dataIndex + 3] = 0;
+      stack.push([x + 1, y]);
+      stack.push([x - 1, y]);
+      stack.push([x, y + 1]);
+      stack.push([x, y - 1]);
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
+  }
+
+  function createSummaryPanel(title, bullets, x, y, z) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1000;
+    const ctx = canvas.getContext('2d');
+
+    const padding = 90;
+    const titleY = 100;
+    const underlineY = 140;
+    const bulletStartY = 210;
+    const lineHeight = 56;
+    const bulletGap = 24;
+    const bottomPadding = 120;
+    const maxWidth = canvas.width - padding * 2 - 30;
+
+    const wrapLines = (text) => {
+      const words = text.split(' ');
+      const lines = [];
+      let line = '';
+
+      words.forEach((word) => {
+        const testLine = line + word + ' ';
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && line !== '') {
+          lines.push(line.trim());
+          line = word + ' ';
+        } else {
+          line = testLine;
+        }
+      });
+
+      if (line.trim() !== '') {
+        lines.push(line.trim());
+      }
+
+      return lines;
+    };
+
+    ctx.font = '46px Georgia';
+    const bulletLines = bullets.map((bullet) => wrapLines(bullet));
+    const bulletHeight = bulletLines.reduce(
+      (total, lines) => total + lines.length * lineHeight + bulletGap,
+      0
+    );
+
+    canvas.height = bulletStartY + bulletHeight + bottomPadding;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Title
+    ctx.font = 'bold 80px Georgia';
+    ctx.fillStyle = '#1a1a1a';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(title.toUpperCase(), canvas.width / 2, titleY);
+
+    // Title underline
+    ctx.strokeStyle = '#d4af37';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(180, underlineY);
+    ctx.lineTo(canvas.width - 180, underlineY);
+    ctx.stroke();
+
+    // Bullet points
+    ctx.font = '46px Georgia';
+    ctx.fillStyle = '#2a2a2a';
+    ctx.textAlign = 'left';
+    const leftMargin = padding;
+    let cursorY = bulletStartY;
+
+    bulletLines.forEach((lines) => {
+      // Bullet point
+      ctx.fillStyle = '#d4af37';
+      ctx.beginPath();
+      ctx.arc(leftMargin, cursorY - 12, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Text
+      ctx.fillStyle = '#2a2a2a';
+      lines.forEach((line, index) => {
+        const lineY = cursorY + index * lineHeight;
+        ctx.fillText(line, leftMargin + 30, lineY);
+      });
+      cursorY += lines.length * lineHeight + bulletGap;
+    });
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const textMaterial = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      side: THREE.DoubleSide,
+    });
+    textMaterial.depthWrite = false;
+
+    const bubbleMaterial = new THREE.MeshBasicMaterial({
+      map: bubbleTexture,
+      transparent: true,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+
+    const groupPanel = new THREE.Group();
+    const bubbleSize = 8.2;
+    const bubble = new THREE.Mesh(
+      new THREE.PlaneGeometry(bubbleSize, bubbleSize),
+      bubbleMaterial
+    );
+    bubble.layers.set(reflectionOnlyLayer);
+    groupPanel.add(bubble);
+
+    const textPanelWidth = 6.2;
+    const textPanelHeight = textPanelWidth * (canvas.height / canvas.width);
+    const textPanel = new THREE.Mesh(
+      new THREE.PlaneGeometry(textPanelWidth, textPanelHeight),
+      textMaterial
+    );
+    textPanel.position.set(0, 0.3, 0.02);
+    textPanel.layers.set(reflectionOnlyLayer);
+    groupPanel.add(textPanel);
+
+    groupPanel.position.set(x, y, z);
+    groupPanel.layers.set(reflectionOnlyLayer);
+    groupPanel.userData.materials = [bubbleMaterial, textMaterial];
+
+    // Add subtle glow around panel
+    const glowLight = new THREE.PointLight(0xffffff, 0.5, 8);
+    glowLight.position.set(x, y, z + 0.5);
+    glowLight.layers.set(reflectionOnlyLayer);
+    group.add(glowLight);
+
+    return groupPanel;
+  }
+
+  // Create summary panels arranged around the viewing area
+  const summaryPanelScale = 0.9;
+
+  const valuesPanel = createSummaryPanel(
+    'Values',
+    [
+      'Clarity over complexity',
+      'Accessibility over exclusivity',
+      'Progress over perfection',
+      'Understanding over execution'
+    ],
+    -8, 7, -13
+  );
+  valuesPanel.rotation.y = Math.PI * 0.15;
+  valuesPanel.scale.setScalar(summaryPanelScale);
+  valuesPanel.renderOrder = 10;
+  valuesPanel.userData.depthOffset = 0.01;
+  group.add(valuesPanel);
+
+  const beliefsPanel = createSummaryPanel(
+    'Beliefs',
+    [
+      'Question assumptions before accepting limits',
+      'Return to first principles for clarity',
+      'Simplify to reveal core problems',
+      'Learn through iteration and reflection'
+    ],
+    8, 7, -13
+  );
+  beliefsPanel.rotation.y = -Math.PI * 0.15;
+  beliefsPanel.scale.setScalar(summaryPanelScale);
+  beliefsPanel.renderOrder = 11;
+  beliefsPanel.userData.depthOffset = 0.02;
+  group.add(beliefsPanel);
+
+  spellTargets.push(...[valuesPanel, beliefsPanel]);
+
+  const headLockedPanels = [
+    { panel: valuesPanel, side: 0 },
+    { panel: beliefsPanel, side: 0 },
+  ];
+  const headPanelOffset = {
+    up: 3.4,
+    forward: 1.1,
+    side: 0,
+  };
+  const headPanelForward = new THREE.Vector3();
+  const headPanelRight = new THREE.Vector3();
+  const headPanelBase = new THREE.Vector3();
+  const valuesBeliefsSwap = {
+    interval: 5,
+    fade: 0.4,
+  };
+  const setPanelOpacity = (panel, opacity) => {
+    const materials = panel.userData.materials ?? [];
+    materials.forEach((material) => {
+      material.opacity = opacity;
+      material.transparent = true;
+    });
+  };
+
   // === GIANT MIRROR IN CENTER (PLANAR REFLECTION) ===
 
-  const mirrorGeometry = new THREE.PlaneGeometry(10, 12);
-  const mirrorCenterY = 6.3;
+  const mirrorWidth = 8;
+  const mirrorHeight = 10;
+  const mirrorGeometry = new THREE.PlaneGeometry(mirrorWidth, mirrorHeight);
+  const mirrorCenterY = 5.5;
+  const mirrorCenterZ = Math.max(-platformHalf + 1, backRowZ);
   const mirror = new Reflector(mirrorGeometry, {
     clipBias: 0.003,
     textureWidth: window.innerWidth * window.devicePixelRatio,
     textureHeight: window.innerHeight * window.devicePixelRatio,
-    color: 0x777777,
+    color: 0x888888,
   });
-  mirror.position.set(0, mirrorCenterY, -13);
+  mirror.position.set(0, mirrorCenterY, mirrorCenterZ);
   group.add(mirror);
   spellTargets.push(mirror);
 
-  const avatarLayer = 1;
   const originalOnBeforeRender = mirror.onBeforeRender;
   mirror.onBeforeRender = function (renderer, scene, camera) {
     const originalMask = camera.layers.mask;
-    camera.layers.enable(avatarLayer);
+    camera.layers.enable(reflectionOnlyLayer);
     if (this.camera) {
       this.camera.layers.mask = camera.layers.mask;
     }
@@ -202,34 +473,38 @@ export function createRoom6(scene, rooms, spellTargets) {
 
   const frameThickness = 0.4;
   const frameDepth = 0.6;
+  const frameOuterWidth = mirrorWidth + frameThickness * 2;
+  const frameOuterHeight = mirrorHeight + frameThickness * 2;
+  const frameSideX = mirrorWidth / 2 + frameThickness / 2;
+  const frameSideY = mirrorHeight / 2 + frameThickness / 2;
 
   // Frame sides
   const frameLeft = new THREE.Mesh(
-    new THREE.BoxGeometry(frameThickness, 12, frameDepth),
+    new THREE.BoxGeometry(frameThickness, frameOuterHeight, frameDepth),
     frameMaterial
   );
-  frameLeft.position.set(-5.2, mirrorCenterY, -13);
+  frameLeft.position.set(-frameSideX, mirrorCenterY, mirrorCenterZ);
   group.add(frameLeft);
 
   const frameRight = new THREE.Mesh(
-    new THREE.BoxGeometry(frameThickness, 12, frameDepth),
+    new THREE.BoxGeometry(frameThickness, frameOuterHeight, frameDepth),
     frameMaterial
   );
-  frameRight.position.set(5.2, mirrorCenterY, -13);
+  frameRight.position.set(frameSideX, mirrorCenterY, mirrorCenterZ);
   group.add(frameRight);
 
   const frameTop = new THREE.Mesh(
-    new THREE.BoxGeometry(10.8, frameThickness, frameDepth),
+    new THREE.BoxGeometry(frameOuterWidth, frameThickness, frameDepth),
     frameMaterial
   );
-  frameTop.position.set(0, mirrorCenterY + 6.2, -13);
+  frameTop.position.set(0, mirrorCenterY + frameSideY, mirrorCenterZ);
   group.add(frameTop);
 
   const frameBottom = new THREE.Mesh(
-    new THREE.BoxGeometry(10.8, frameThickness, frameDepth),
+    new THREE.BoxGeometry(frameOuterWidth, frameThickness, frameDepth),
     frameMaterial
   );
-  frameBottom.position.set(0, mirrorCenterY - 6.2, -13);
+  frameBottom.position.set(0, mirrorCenterY - frameSideY, mirrorCenterZ);
   group.add(frameBottom);
 
   // Mirror collision - prevent walking through
@@ -238,7 +513,7 @@ export function createRoom6(scene, rooms, spellTargets) {
     new THREE.BoxGeometry(10, 12, 0.5),
     new THREE.MeshBasicMaterial({ visible: false })
   );
-  mirrorCollisionBox.position.set(0, mirrorCenterY, -13);
+  mirrorCollisionBox.position.set(0, mirrorCenterY, mirrorCenterZ);
   mirrorCollisionBox.name = 'mirror-collision';
   group.add(mirrorCollisionBox);
 
@@ -354,6 +629,40 @@ export function createRoom6(scene, rooms, spellTargets) {
 
       // Pulse mirror frame glow
       frameMaterial.emissiveIntensity = 0.1 + Math.sin(time * 1.5) * 0.05;
+
+      // Keep values/beliefs panels locked above the user's head.
+      camera.getWorldDirection(headPanelForward);
+      headPanelRight.crossVectors(headPanelForward, camera.up).normalize();
+      headPanelBase.copy(camera.position)
+        .addScaledVector(camera.up, headPanelOffset.up)
+        .addScaledVector(headPanelForward, headPanelOffset.forward);
+
+      headLockedPanels.forEach(({ panel, side }) => {
+        const depthOffset = panel.userData.depthOffset ?? 0;
+        const worldPos = headPanelBase.clone()
+          .addScaledVector(headPanelRight, side * headPanelOffset.side)
+          .addScaledVector(headPanelForward, depthOffset);
+        panel.position.copy(group.worldToLocal(worldPos));
+        panel.quaternion.copy(camera.quaternion);
+      });
+
+      const cycleDuration = valuesBeliefsSwap.interval * 2;
+      const cycleTime = time % cycleDuration;
+      const phase = cycleTime < valuesBeliefsSwap.interval ? 0 : 1;
+      const phaseTime = cycleTime % valuesBeliefsSwap.interval;
+
+      const fadeWindow = Math.min(valuesBeliefsSwap.fade, valuesBeliefsSwap.interval / 2);
+      const fadeIn = Math.min(phaseTime / fadeWindow, 1);
+      const fadeOut = Math.min((valuesBeliefsSwap.interval - phaseTime) / fadeWindow, 1);
+      const visibleOpacity = Math.min(fadeIn, fadeOut);
+      const hiddenOpacity = 1 - visibleOpacity;
+
+      const showValues = phase === 0;
+      const valuesOpacity = showValues ? visibleOpacity : hiddenOpacity;
+      const beliefsOpacity = showValues ? hiddenOpacity : visibleOpacity;
+
+      setPanelOpacity(valuesPanel, valuesOpacity);
+      setPanelOpacity(beliefsPanel, beliefsOpacity);
 
       // Reflector updates automatically via the renderer render pass.
     },

@@ -82,10 +82,12 @@ initSubtitleSystem({
   getRoomAudioDuration,
 });
 
-const INTRO_DURATION = 1350;
+const INTRO_DURATION = 2500;
+const INTRO_FADE_OUT = 100;
 let introTimeout = null;
 let pendingIntroRoom = null;
 let bossStingTimeout = null;
+let bossHideTimeout = null;
 
 startButton.addEventListener("click", () => {
   console.log('🖱️ Start button clicked');
@@ -458,6 +460,9 @@ avatarLoader.load(
     avatarState.model.traverse((child) => {
       child.layers.set(1);
     });
+    const avatarBounds = new THREE.Box3().setFromObject(avatarState.model);
+    const avatarHeight = avatarBounds.max.y - avatarBounds.min.y;
+    const localHeight = avatarHeight / avatarState.model.scale.y;
     avatarState.model.visible = false;
     scene.add(avatarState.model);
     avatarState.ready = true;
@@ -557,9 +562,13 @@ function triggerRoomIntro(roomConfig) {
   if (bossStingTimeout) {
     clearTimeout(bossStingTimeout);
   }
+  if (bossHideTimeout) {
+    clearTimeout(bossHideTimeout);
+  }
 
   pendingIntroRoom = null;
   stopRoomAudio();
+  stopBossSting();
   playBossSting(INTRO_DURATION, 50);
 
   if (bossTitle) {
@@ -567,6 +576,9 @@ function triggerRoomIntro(roomConfig) {
   }
 
   if (bossOverlay) {
+    bossOverlay.classList.remove("active");
+    bossOverlay.classList.add("hidden");
+    void bossOverlay.offsetWidth;
     bossOverlay.classList.remove("hidden");
     bossOverlay.classList.add("active");
   }
@@ -575,7 +587,9 @@ function triggerRoomIntro(roomConfig) {
     playRoomAudio(roomConfig.id);
     if (bossOverlay) {
       bossOverlay.classList.remove("active");
-      bossOverlay.classList.add("hidden");
+      bossHideTimeout = setTimeout(() => {
+        bossOverlay.classList.add("hidden");
+      }, INTRO_FADE_OUT);
     }
   }, INTRO_DURATION);
 
@@ -849,7 +863,7 @@ function animate() {
     direction.z = desiredZ;
     direction.normalize();
 
-    const speed = 50.0;
+    const speed = 75.0;
     if (move.forward || move.backward) velocity.z -= direction.z * speed * delta;
     if (move.left || move.right) velocity.x -= direction.x * speed * delta;
 

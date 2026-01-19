@@ -95,10 +95,10 @@ export function createRoom2(scene, rooms, spellTargets) {
       });
 
       const bitcoinPhoto = new THREE.Mesh(
-        new THREE.PlaneGeometry(6, 4),
+        new THREE.PlaneGeometry(8, 5.3),
         photoMaterial
       );
-      bitcoinPhoto.position.set(0, 3.5, -23.7);
+      bitcoinPhoto.position.set(0, 3.0, -23.7);
       bitcoinPhoto.rotation.y = 0;
       group.add(bitcoinPhoto);
       spellTargets.push(bitcoinPhoto);
@@ -178,10 +178,10 @@ export function createRoom2(scene, rooms, spellTargets) {
 
   const labelTexture = createAssumingLabelTexture();
   const businessmenPositions = [
-    { pos: [-4, 0, -15], scale: 1.2, focus: new THREE.Vector3(-0.8, 1.5, -12.2) },
-    { pos: [4, 0, -15], scale: 1.2, focus: new THREE.Vector3(0.8, 1.5, -12.2) },
-    { pos: [-3, 0, -9], scale: 1.2, focus: new THREE.Vector3(-0.8, 1.5, -11.8) },
-    { pos: [3, 0, -9], scale: 1.2, focus: new THREE.Vector3(0.8, 1.5, -11.8) },
+    { pos: [-4, 0, -15], scale: 1.2, focus: new THREE.Vector3(-0.8, 1.5, -12.2), yawOffset: 0 },
+    { pos: [4, 0, -15], scale: 1.2, focus: new THREE.Vector3(0.8, 1.5, -12.2), yawOffset: 0 },
+    { pos: [-3, 0, -9], scale: 1.2, focus: new THREE.Vector3(-0.8, 1.5, -11.8), yawOffset: Math.PI / 2 },
+    { pos: [3, 0, -9], scale: 1.2, focus: new THREE.Vector3(0.8, 1.5, -11.8), yawOffset: -Math.PI / 2 },
   ];
 
   businessmenPositions.forEach((config, index) => {
@@ -193,6 +193,7 @@ export function createRoom2(scene, rooms, spellTargets) {
         businessman.position.set(...config.pos);
         businessman.scale.set(config.scale, config.scale, config.scale);
         businessman.lookAt(config.focus);
+        businessman.rotation.y += config.yawOffset ?? 0;
         businessman.rotation.x = 0;
         businessman.rotation.z = 0;
 
@@ -273,7 +274,7 @@ export function createRoom2(scene, rooms, spellTargets) {
           stonksHead.name = 'stonksHead';
 
           // Small stonks head on table
-          stonksHead.position.set(0, 1.5, -12);
+          stonksHead.position.set(0, 1.6, -12);
           stonksHead.scale.set(0.006, 0.006, 0.006); // Small
 
           // Apply cloth texture to all meshes
@@ -291,7 +292,7 @@ export function createRoom2(scene, rooms, spellTargets) {
           group.add(stonksHead);
 
           // Animation properties
-          stonksHead.userData.rotationSpeed = 1.0;
+          stonksHead.userData.rotationSpeed = 5.0;
 
           console.log('✅ Loaded small stonks head with cloth texture');
         },

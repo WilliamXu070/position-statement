@@ -158,7 +158,7 @@ canvas {
 }
 
 #boss-overlay.active {
-  animation: boss-card 1.5s ease-out forwards;
+  animation: boss-card 2.4s ease-out forwards;
 }
 
 .boss-card {
@@ -221,6 +221,8 @@ canvas {
   border: 1px solid rgba(247, 241, 233, 0.2);
   pointer-events: none;
   font-size: 15px;
+  justify-content: center;
+  text-align: center;
 }
 
 #subtitle-text {

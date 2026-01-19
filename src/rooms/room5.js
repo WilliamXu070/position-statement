@@ -26,6 +26,126 @@ export function createRoom5(scene, rooms, spellTargets) {
   // Tree structure data
   const treeNodes = [];
   const treeLines = [];
+  const textureLoader = new THREE.TextureLoader();
+
+  // Hack the North collage wall (right side)
+  const hackWallGroup = new THREE.Group();
+  hackWallGroup.position.set(9, 3, -4);
+  hackWallGroup.rotation.y = -Math.PI / 2;
+
+  const wallBack = new THREE.Mesh(
+    new THREE.PlaneGeometry(9, 5.5),
+    new THREE.MeshStandardMaterial({
+      color: 0x111111,
+      roughness: 0.9,
+      metalness: 0.1,
+    })
+  );
+  hackWallGroup.add(wallBack);
+
+  const hackWallLight = new THREE.PointLight(0xfff0d0, 1.2, 12);
+  hackWallLight.position.set(7.5, 4.5, -4);
+  scene.add(hackWallLight);
+
+  const titleCanvas = document.createElement("canvas");
+  titleCanvas.width = 1024;
+  titleCanvas.height = 256;
+  const titleCtx = titleCanvas.getContext("2d");
+  titleCtx.fillStyle = "rgba(0, 0, 0, 0.6)";
+  titleCtx.fillRect(0, 0, titleCanvas.width, titleCanvas.height);
+  titleCtx.font = "700 65px Georgia";
+  titleCtx.fillStyle = "#f7d36a";
+  titleCtx.textAlign = "center";
+  titleCtx.textBaseline = "middle";
+  titleCtx.fillText("COLLAGE OF CATASTROPHE", titleCanvas.width / 2, titleCanvas.height / 2);
+
+  const titleTexture = new THREE.CanvasTexture(titleCanvas);
+  const titleMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(8.5, 1.6),
+    new THREE.MeshStandardMaterial({
+      map: titleTexture,
+      transparent: true,
+      roughness: 0.6,
+      metalness: 0.1,
+    })
+  );
+  titleMesh.position.set(0, 3.2, 0.08);
+  hackWallGroup.add(titleMesh);
+
+  const hackItems = [
+    { type: "image", src: "Images/hack/ubisoft.jpg" },
+    { type: "image", src: "Images/hack/IMG_4454.JPG" },
+    { type: "image", src: "Images/hack/IMG_4433.PNG" },
+    { type: "image", src: "Images/hack/20250912_002734_916.JPG" },
+    { type: "video", src: "Images/hack/1757795913997~2416418917322.MP4" },
+  ];
+
+  const tilePositions = [
+    new THREE.Vector3(-2.4, 1.4, 0.06),
+    new THREE.Vector3(2.4, 1.4, 0.06),
+    new THREE.Vector3(-2.4, -0.4, 0.06),
+    new THREE.Vector3(2.4, -0.4, 0.06),
+    new THREE.Vector3(0, -2.2, 0.06),
+  ];
+
+  const hackVideos = [];
+
+  hackItems.forEach((item, index) => {
+    const tile = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.8, 1.6),
+      new THREE.MeshStandardMaterial({
+        color: 0x1a1a1a,
+        roughness: 0.6,
+        metalness: 0.2,
+      })
+    );
+    tile.position.copy(tilePositions[index]);
+    hackWallGroup.add(tile);
+
+    if (item.type === "image") {
+      textureLoader.load(item.src, (texture) => {
+        texture.colorSpace = THREE.SRGBColorSpace;
+        tile.material = new THREE.MeshBasicMaterial({
+          map: texture,
+          side: THREE.FrontSide,
+          toneMapped: false,
+        });
+
+        const image = texture.image;
+        if (image?.width && image?.height) {
+          const aspect = image.width / image.height;
+          const height = 1.6;
+          const width = height * aspect;
+          tile.geometry.dispose();
+          tile.geometry = new THREE.PlaneGeometry(width, height);
+        }
+      });
+    } else if (item.type === "video") {
+      const video = document.createElement("video");
+      video.src = item.src;
+      video.muted = true;
+      video.loop = true;
+      video.playsInline = true;
+      video.crossOrigin = "anonymous";
+
+      const videoTexture = new THREE.VideoTexture(video);
+      videoTexture.colorSpace = THREE.SRGBColorSpace;
+      videoTexture.minFilter = THREE.LinearFilter;
+      videoTexture.magFilter = THREE.LinearFilter;
+
+      tile.material = new THREE.MeshBasicMaterial({
+        map: videoTexture,
+        side: THREE.FrontSide,
+      });
+
+      tile.geometry.dispose();
+      tile.geometry = new THREE.PlaneGeometry(3.2, 1.8);
+
+      hackVideos.push(video);
+    }
+  });
+
+  group.add(hackWallGroup);
 
   // Helper to create a tree node
   function createNode(label, position, isDeadEnd = false, isFinal = false) {
@@ -224,6 +344,12 @@ export function createRoom5(scene, rooms, spellTargets) {
     group,
     spawn: new THREE.Vector3(0, EYE_HEIGHT, -800),
     update: (time, delta) => {
+      hackVideos.forEach((video) => {
+        if (video.readyState >= 2 && video.paused) {
+          video.play().catch(() => {});
+        }
+      });
+
       if (animationComplete) {
         // Pulse the final node
         if (final.userData.nodeMesh) {
