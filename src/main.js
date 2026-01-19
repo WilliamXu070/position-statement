@@ -337,6 +337,14 @@ scene.add(controls.getObject());
 
 const wand = createWand();
 camera.add(wand);
+const wandTuning = {
+  position: new THREE.Vector3(0.42, -0.25, -0.55),
+  rotation: new THREE.Euler(-0.1, -Math.PI / 2 + 3.2, -0.05),
+};
+wand.position.copy(wandTuning.position);
+wand.rotation.copy(wandTuning.rotation);
+wand.userData.basePosition = wandTuning.position.clone();
+wand.userData.baseRotation = wandTuning.rotation.clone();
 
 const lightningBeam = createLightningBeam();
 scene.add(lightningBeam.glowLine);
@@ -609,9 +617,8 @@ function returnToRoomCenter() {
 // ===== SPELL UPDATES =====
 
 function updateWand(time, delta) {
-  if (!wand.userData.basePosition || !wand.userData.baseRotation) {
-    return;
-  }
+  const basePosition = wandTuning.position;
+  const baseRotation = wandTuning.rotation;
   const channelTarget = spellInput.lightning ? 1 : 0;
   wandState.channel += (channelTarget - wandState.channel) * Math.min(1, delta * 6);
   wandState.recoil = Math.max(0, wandState.recoil - delta * 3);
@@ -622,13 +629,13 @@ function updateWand(time, delta) {
   const recoilKick = wandState.recoil * 0.06;
 
   wand.position
-    .copy(wand.userData.basePosition)
+    .copy(basePosition)
     .add(tempVec.set(0, bob, 0))
     .add(tempVec2.set(0, 0, -channelKick - recoilKick));
   wand.rotation.set(
-    wand.userData.baseRotation.x + sway - wandState.channel * 0.2,
-    wand.userData.baseRotation.y + Math.sin(time * 1.1) * 0.02,
-    wand.userData.baseRotation.z + Math.sin(time * 2.8) * 0.03
+    baseRotation.x + sway - wandState.channel * 0.2,
+    baseRotation.y + Math.sin(time * 1.1) * 0.02,
+    baseRotation.z + Math.sin(time * 2.8) * 0.03
   );
 
   if (wand.userData.tip?.material) {

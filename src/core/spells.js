@@ -36,10 +36,14 @@ export function createWand() {
   group.add(tip);
 
   group.userData.tip = tip;
-  group.position.set(0.32, -0.25, -0.55);
-  group.rotation.set(-0.2, 0.2, 0.1);
-  group.userData.basePosition = group.position.clone();
-  group.userData.baseRotation = group.rotation.clone();
+
+  // Wand tuning: position (x, y, z) and rotation (pitch, yaw, roll) in radians.
+  const basePosition = new THREE.Vector3(0.32, -0.25, -0.55);
+  const baseRotation = new THREE.Euler(-0.3, -Math.PI / 2, 0.05);
+  group.position.copy(basePosition);
+  group.rotation.copy(baseRotation);
+  group.userData.basePosition = basePosition.clone();
+  group.userData.baseRotation = baseRotation.clone();
   return group;
 }
 
