@@ -1,23 +1,21 @@
 import * as THREE from "three";
 import { EYE_HEIGHT } from "../constants.js";
-import { createTextPanel } from "../utils/textPanel.js";
 
-// ROOM 5: Speed & Iteration (Hackathons)
+// ROOM 5: DFS Iterative Cycle Visualization
 export function createRoom5(scene, rooms, spellTargets) {
   const group = new THREE.Group();
   group.position.set(0, 0, -800);
 
-  // Dynamic, energetic environment
-  scene.background = new THREE.Color(0x1a1a0a);
-  scene.fog = new THREE.Fog(0x1a1a0a, 10, 60);
+  // Dark background for focus on tree
+  scene.background = new THREE.Color(0x0a0a0a);
+  scene.fog = new THREE.Fog(0x0a0a0a, 10, 50);
 
-  // Dark floor with grid lines
+  // Simple floor
   const platform = new THREE.Mesh(
     new THREE.PlaneGeometry(10000, 10000),
     new THREE.MeshStandardMaterial({
-      color: 0x2a2a1a,
-      roughness: 0.9,
-      metalness: 0.1,
+      color: 0x1a1a1a,
+      roughness: 1.0,
     })
   );
   platform.rotation.x = -Math.PI / 2;
@@ -25,257 +23,294 @@ export function createRoom5(scene, rooms, spellTargets) {
   group.add(platform);
   spellTargets.push(platform);
 
-  // Grid lines on floor
-  const gridHelper = new THREE.GridHelper(40, 40, 0xff8800, 0x664400);
-  gridHelper.position.y = 0.01;
-  group.add(gridHelper);
+  // Tree structure data
+  const treeNodes = [];
+  const treeLines = [];
 
-  // Conveyor belt visualization (central strip)
-  const beltGeometry = new THREE.PlaneGeometry(6, 50);
-  const beltMaterial = new THREE.MeshStandardMaterial({
-    color: 0x3a3a2a,
-    roughness: 0.8,
-    emissive: 0x2a2a1a,
-    emissiveIntensity: 0.3,
-  });
-  const belt = new THREE.Mesh(beltGeometry, beltMaterial);
-  belt.rotation.x = -Math.PI / 2;
-  belt.position.set(0, 0.05, -10);
-  group.add(belt);
+  // Helper to create a tree node
+  function createNode(label, position, isDeadEnd = false, isFinal = false) {
+    const nodeGroup = new THREE.Group();
 
-  // Belt edge markers
-  for (let i = 0; i < 20; i++) {
-    const marker = new THREE.Mesh(
-      new THREE.BoxGeometry(0.3, 0.1, 0.8),
+    // Node sphere
+    const nodeMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.3, 16, 16),
       new THREE.MeshStandardMaterial({
-        color: 0xff8800,
-        emissive: 0xff6600,
+        color: 0x4488ff,
+        emissive: 0x2244aa,
         emissiveIntensity: 0.5,
+        roughness: 0.4,
+        metalness: 0.3,
       })
     );
-    marker.position.set(2.8, 0.1, -25 + i * 2.5);
-    marker.userData.initialZ = marker.position.z;
-    group.add(marker);
+    nodeGroup.add(nodeMesh);
 
-    const marker2 = marker.clone();
-    marker2.position.x = -2.8;
-    marker2.userData.initialZ = marker2.position.z;
-    group.add(marker2);
-  }
+    // Label
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(label, canvas.width / 2, canvas.height / 2);
 
-  // Project cards flying past
-  const projectCards = [];
-  const projectData = [
-    { title: "Invoice OCR", subtitle: "24hr build", color: 0xff6644 },
-    { title: "ML Classifier", subtitle: "Rapid prototype", color: 0x4488ff },
-    { title: "API Gateway", subtitle: "Sprint delivery", color: 0x44ff88 },
-    { title: "Data Pipeline", subtitle: "Fast iteration", color: 0xffaa44 },
-    { title: "Mobile App", subtitle: "Quick MVP", color: 0xff44ff },
-    { title: "Trading Bot", subtitle: "Speed test", color: 0x44ffff },
-  ];
-
-  projectData.forEach((project, i) => {
-    const card = createTextPanel({
-      title: project.title,
-      body: [project.subtitle],
-      width: 4,
-      height: 2.5,
-    });
-
-    card.position.set(
-      (Math.random() - 0.5) * 4,
-      2 + Math.random() * 1,
-      -30 + i * 8
-    );
-
-    card.material = new THREE.MeshStandardMaterial({
-      map: card.material.map,
-      emissive: project.color,
-      emissiveIntensity: 0.6,
-      color: 0x2a2a2a,
-      roughness: 0.7,
+    const labelTexture = new THREE.CanvasTexture(canvas);
+    const labelMaterial = new THREE.MeshBasicMaterial({
+      map: labelTexture,
+      transparent: true,
       side: THREE.DoubleSide,
     });
 
-    card.userData.clickable = true;
-    card.userData.locked = false;
-    card.userData.speed = 3 + Math.random() * 2;
-    card.userData.originalEmissive = project.color;
-    card.userData.initialZ = card.position.z;
-
-    group.add(card);
-    projectCards.push(card);
-    spellTargets.push(card);
-  });
-
-  // Large timer/speed indicator
-  const timerPanel = createTextPanel({
-    title: "24:00:00",
-    body: ["Time Remaining"],
-    width: 5,
-    height: 2.5,
-  });
-  timerPanel.position.set(-8, 4, -5);
-  timerPanel.material = new THREE.MeshStandardMaterial({
-    map: timerPanel.material.map,
-    emissive: 0xff3300,
-    emissiveIntensity: 0.7,
-    color: 0x1a1a1a,
-    roughness: 0.8,
-    side: THREE.DoubleSide,
-  });
-  group.add(timerPanel);
-
-  // Speed indicators (moving arrows)
-  const arrowGeometry = new THREE.ConeGeometry(0.3, 1, 3);
-  const arrows = [];
-  for (let i = 0; i < 5; i++) {
-    const arrow = new THREE.Mesh(
-      arrowGeometry,
-      new THREE.MeshStandardMaterial({
-        color: 0xff8800,
-        emissive: 0xff6600,
-        emissiveIntensity: 0.8,
-      })
+    const labelMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.5, 0.75),
+      labelMaterial
     );
-    arrow.rotation.x = Math.PI / 2;
-    arrow.position.set(8, 3 - i * 0.5, -10 - i * 2);
-    arrow.userData.initialZ = arrow.position.z;
-    group.add(arrow);
-    arrows.push(arrow);
+    labelMesh.position.y = 0.8;
+    nodeGroup.add(labelMesh);
+
+    nodeGroup.position.copy(position);
+    nodeGroup.userData.isDeadEnd = isDeadEnd;
+    nodeGroup.userData.isFinal = isFinal;
+    nodeGroup.userData.nodeMesh = nodeMesh;
+    nodeGroup.userData.visited = false;
+
+    group.add(nodeGroup);
+    treeNodes.push(nodeGroup);
+    return nodeGroup;
   }
 
-  // Main description panel
-  const descPanel = createTextPanel({
-    title: "Speed & Iteration",
-    body: [
-      "Hackathons taught me to build fast and iterate faster.",
-      "",
-      "Move quickly, test ideas, learn from failures.",
-      "",
-      "Click a project card to lock it and refine it.",
-    ],
-    width: 9,
-    height: 4.5,
-  });
-  descPanel.position.set(0, 3.5, 8);
-  group.add(descPanel);
+  // Helper to create a line between nodes
+  function createLine(startNode, endNode) {
+    const points = [
+      startNode.position.clone(),
+      endNode.position.clone(),
+    ];
 
-  // Refinement workspace (appears when card locked)
-  const workspacePanel = createTextPanel({
-    title: "Refinement Mode",
-    body: [
-      "Now we iterate:",
-      "→ Test edge cases",
-      "→ Optimize performance",
-      "→ Polish UX",
-    ],
-    width: 6,
-    height: 4,
-  });
-  workspacePanel.position.set(0, 3, -15);
-  workspacePanel.visible = false;
-  workspacePanel.material = new THREE.MeshStandardMaterial({
-    map: workspacePanel.material.map,
-    emissive: 0x44ff88,
-    emissiveIntensity: 0,
-    color: 0x1a1a1a,
-    roughness: 0.8,
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({
+      color: 0x444444,
+      linewidth: 2,
+    });
+
+    const line = new THREE.Line(geometry, material);
+    group.add(line);
+    treeLines.push(line);
+    return line;
+  }
+
+  // Build the tree structure
+  const root = createNode("Start", new THREE.Vector3(0, 6, -10));
+
+  // Idea A branch
+  const ideaA = createNode("Idea A", new THREE.Vector3(-4, 4, -12));
+  const a1 = createNode("A1 (failed)", new THREE.Vector3(-6, 2, -14), true);
+  const a2 = createNode("A2 (slow)", new THREE.Vector3(-4, 1.5, -13), true);
+  const a3 = createNode("A3 (better)", new THREE.Vector3(-2, 2, -14));
+
+  // Idea B branch
+  const ideaB = createNode("Idea B", new THREE.Vector3(0, 4, -13));
+  const b1 = createNode("B1 (blocked)", new THREE.Vector3(0, 2, -15), true);
+
+  // Idea C branch (final solution)
+  const ideaC = createNode("Idea C", new THREE.Vector3(4, 4, -12));
+  const final = createNode("Final!", new THREE.Vector3(4, 2, -14), false, true);
+
+  // Create lines
+  createLine(root, ideaA);
+  createLine(root, ideaB);
+  createLine(root, ideaC);
+  createLine(ideaA, a1);
+  createLine(ideaA, a2);
+  createLine(ideaA, a3);
+  createLine(ideaB, b1);
+  createLine(ideaC, final);
+
+  // DFS traversal rectangle
+  const traveler = new THREE.Mesh(
+    new THREE.BoxGeometry(0.5, 0.5, 0.5),
+    new THREE.MeshStandardMaterial({
+      color: 0xff4444,
+      emissive: 0xff2222,
+      emissiveIntensity: 0.8,
+      roughness: 0.3,
+      metalness: 0.5,
+    })
+  );
+  traveler.position.copy(root.position);
+  group.add(traveler);
+
+  // Video screen below the tree (initially hidden)
+  const video = document.createElement('video');
+  video.src = 'Wicker.mov';
+  video.muted = true;
+  video.loop = false;
+  video.playsInline = true;
+  video.crossOrigin = 'anonymous';
+
+  const videoTexture = new THREE.VideoTexture(video);
+  videoTexture.minFilter = THREE.LinearFilter;
+  videoTexture.magFilter = THREE.LinearFilter;
+
+  const screenGeometry = new THREE.PlaneGeometry(8, 4.5);
+  const screenMaterial = new THREE.MeshBasicMaterial({
+    map: videoTexture,
     side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0, // Start invisible
   });
-  group.add(workspacePanel);
 
-  // Energetic lighting
-  const ambientLight = new THREE.AmbientLight(0x4a3a2a, 0.4);
+  const videoScreen = new THREE.Mesh(screenGeometry, screenMaterial);
+  videoScreen.position.set(0, -2, -6); // Below tree, in front (closer to player)
+  videoScreen.rotation.x = 0; // Face forward
+  videoScreen.visible = false; // Initially hidden
+  group.add(videoScreen);
+
+  // Screen frame/border (initially hidden)
+  const frameGeometry = new THREE.PlaneGeometry(8.4, 4.9);
+  const frameMaterial = new THREE.MeshStandardMaterial({
+    color: 0x222222,
+    roughness: 0.3,
+    metalness: 0.7,
+    transparent: true,
+    opacity: 0,
+  });
+  const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+  frame.position.set(0, -2, -6.05); // Behind screen
+  frame.visible = false; // Initially hidden
+  group.add(frame);
+
+  // Store video reference
+  group.userData.video = video;
+  group.userData.videoScreen = videoScreen;
+  group.userData.videoFrame = frame;
+
+  // DFS path (order of traversal)
+  const dfsPath = [
+    root, ideaA, a1, // Visit A1 (dead end)
+    ideaA, a2,       // Backtrack, visit A2 (dead end)
+    ideaA, a3,       // Backtrack, visit A3
+    ideaA, root,     // Backtrack to root
+    ideaB, b1,       // Visit B1 (dead end)
+    ideaB, root,     // Backtrack to root
+    ideaC, final,    // Visit C and find final solution!
+  ];
+
+  let pathIndex = 0;
+  let transitionProgress = 0;
+  const transitionSpeed = 0.8; // Speed of movement between nodes
+  let animationComplete = false;
+
+  // Lighting
+  const ambientLight = new THREE.AmbientLight(0x222222, 0.5);
   scene.add(ambientLight);
 
-  const orangeLight1 = new THREE.PointLight(0xff8800, 1.5, 25);
-  orangeLight1.position.set(-8, 5, -5);
-  scene.add(orangeLight1);
+  const treeLight = new THREE.PointLight(0x4488ff, 1.5, 30);
+  treeLight.position.set(0, 8, -12);
+  scene.add(treeLight);
 
-  const orangeLight2 = new THREE.PointLight(0xffaa44, 1.5, 25);
-  orangeLight2.position.set(8, 5, -5);
-  scene.add(orangeLight2);
+  // Video screen light (initially off)
+  const videoLight = new THREE.PointLight(0xffffff, 0, 15);
+  videoLight.position.set(0, -2, -4);
+  scene.add(videoLight);
 
-  const timerLight = new THREE.PointLight(0xff3300, 1, 15);
-  timerLight.position.set(-8, 5, -5);
-  scene.add(timerLight);
-
-  let elapsedTime = 0;
+  // Store light reference
+  group.userData.videoLight = videoLight;
 
   rooms.push({
     id: "room5",
     group,
     spawn: new THREE.Vector3(0, EYE_HEIGHT, -800),
     update: (time, delta) => {
-      elapsedTime += delta;
+      if (animationComplete) {
+        // Pulse the final node
+        if (final.userData.nodeMesh) {
+          final.userData.nodeMesh.material.emissiveIntensity = 0.8 + Math.sin(time * 4) * 0.3;
+        }
 
-      // Move belt markers forward
-      group.traverse((child) => {
-        if (child.userData.initialZ !== undefined && child instanceof THREE.Mesh && child.geometry instanceof THREE.BoxGeometry) {
-          child.position.z += delta * 5;
-          if (child.position.z > 5) {
-            child.position.z = child.userData.initialZ;
+        // Fade in video screen and frame
+        if (videoScreen && videoScreen.material.opacity < 1) {
+          videoScreen.material.opacity = Math.min(1, videoScreen.material.opacity + delta * 0.5);
+        }
+        if (frame && frame.material.opacity < 1) {
+          frame.material.opacity = Math.min(1, frame.material.opacity + delta * 0.5);
+        }
+        if (videoLight && videoLight.intensity < 1.5) {
+          videoLight.intensity = Math.min(1.5, videoLight.intensity + delta * 1.0);
+        }
+
+        return;
+      }
+
+      // Animate traveler along DFS path
+      if (pathIndex < dfsPath.length - 1) {
+        const currentNode = dfsPath[pathIndex];
+        const nextNode = dfsPath[pathIndex + 1];
+
+        // Lerp between current and next node
+        transitionProgress += delta * transitionSpeed;
+
+        if (transitionProgress >= 1.0) {
+          // Reached next node
+          transitionProgress = 0;
+          pathIndex++;
+
+          // Mark node as visited
+          nextNode.userData.visited = true;
+
+          // Check if dead end
+          if (nextNode.userData.isDeadEnd && nextNode.userData.nodeMesh) {
+            // Turn grey
+            nextNode.userData.nodeMesh.material.color.setHex(0x666666);
+            nextNode.userData.nodeMesh.material.emissive.setHex(0x333333);
+            nextNode.userData.nodeMesh.material.emissiveIntensity = 0.2;
           }
-        }
-      });
 
-      // Move arrows forward
-      arrows.forEach((arrow) => {
-        arrow.position.z += delta * 8;
-        if (arrow.position.z > 5) {
-          arrow.position.z = arrow.userData.initialZ;
-        }
-      });
+          // Check if final solution
+          if (nextNode.userData.isFinal) {
+            animationComplete = true;
+            // Make it glow
+            if (nextNode.userData.nodeMesh) {
+              nextNode.userData.nodeMesh.material.color.setHex(0x44ff44);
+              nextNode.userData.nodeMesh.material.emissive.setHex(0x22ff22);
+              nextNode.userData.nodeMesh.material.emissiveIntensity = 1.0;
+            }
+            // Show video screen and play
+            if (videoScreen && frame && video) {
+              videoScreen.visible = true;
+              frame.visible = true;
 
-      // Move project cards or keep locked ones in place
-      projectCards.forEach((card) => {
-        if (card.userData.locked) {
-          // Locked card moves to center and stays
-          card.position.x += (0 - card.position.x) * delta * 2;
-          card.position.y += (2.5 - card.position.y) * delta * 2;
-          card.position.z += (-8 - card.position.z) * delta * 2;
-          card.rotation.y += (0 - card.rotation.y) * delta * 3;
-
-          // Show refinement workspace
-          workspacePanel.visible = true;
-          workspacePanel.material.emissiveIntensity = 0.6;
-
-          // Change card color to green (refined)
-          card.material.emissive.lerp(new THREE.Color(0x44ff88), delta * 2);
+              video.play().then(() => {
+                console.log('🎬 Video playing on 3D screen');
+              }).catch(err => {
+                console.error('❌ Video play failed:', err);
+              });
+            }
+          }
         } else {
-          // Cards fly past on conveyor
-          card.position.z += delta * card.userData.speed;
-          if (card.position.z > 10) {
-            card.position.z = card.userData.initialZ;
-          }
-
-          // Gentle rotation and float
-          card.rotation.y += delta * 0.5;
-          card.position.y += Math.sin(time * 2 + card.position.z * 0.1) * 0.01;
+          // Interpolate position
+          traveler.position.lerpVectors(
+            currentNode.position,
+            nextNode.position,
+            transitionProgress
+          );
         }
+      }
 
-        // Pulse emissive
-        const pulse = 0.6 + Math.sin(time * 3 + card.position.z) * 0.2;
-        if (!card.userData.locked) {
-          card.material.emissiveIntensity = pulse;
+      // Rotate traveler
+      traveler.rotation.y += delta * 3;
+      traveler.rotation.x += delta * 2;
+
+      // Pulse visited nodes
+      treeNodes.forEach((node) => {
+        if (node.userData.visited && !node.userData.isDeadEnd && !node.userData.isFinal) {
+          if (node.userData.nodeMesh) {
+            node.userData.nodeMesh.material.emissiveIntensity = 0.5 + Math.sin(time * 3) * 0.2;
+          }
         }
       });
-
-      // Update timer (countdown effect)
-      const hours = Math.floor((24 - elapsedTime / 3) % 24);
-      const minutes = Math.floor((elapsedTime * 10) % 60);
-      const seconds = Math.floor((elapsedTime * 100) % 60);
-      // Timer is visual only, no text update needed
-
-      // Pulse timer
-      const timerPulse = 0.7 + Math.sin(time * 4) * 0.3;
-      timerPanel.material.emissiveIntensity = timerPulse;
-      timerLight.intensity = timerPulse * 1.5;
-
-      // Flicker lights
-      orangeLight1.intensity = 1.5 + Math.sin(time * 5) * 0.3;
-      orangeLight2.intensity = 1.5 + Math.sin(time * 5 + Math.PI) * 0.3;
     },
   });
 

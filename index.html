@@ -19,7 +19,7 @@
     <div id="hud">
       <div class="title">Enacting change, one dent at a time</div>
       <div class="subtitle">
-        WASD to move. Mouse to look. Space to jump. ↑/↓ arrows to navigate rooms. 1 to cast lightning. H to return to center.
+        WASD to move. Mouse to look. Space to jump. E to interact. ↑/↓ arrows to navigate rooms. 1 to cast lightning. H to return to center.
       </div>
       <div id="room-label"></div>
     </div>
@@ -48,6 +48,35 @@
     <!-- Plankton overlay (fixed to viewport) -->
     <div id="plankton-overlay" class="hidden">
       <img src="Plankton.webp" alt="Plankton microscope view" />
+    </div>
+
+    <!-- Room 3 First Principles Interface -->
+    <div id="first-principles-overlay" class="hidden">
+      <div class="fp-container">
+        <div class="fp-header">
+          <h1>First Principles Engineering Process</h1>
+          <div class="fp-progress-bar">
+            <div class="fp-progress-fill" id="fp-progress-fill"></div>
+          </div>
+          <div class="fp-step-indicator" id="fp-step-indicator">Step 1 of 8</div>
+        </div>
+
+        <div class="fp-content">
+          <div class="fp-image-container">
+            <img id="fp-image" src="Images/1.jpg" alt="Current step" />
+          </div>
+          <h2 id="fp-title">Idea</h2>
+        </div>
+
+        <div class="fp-navigation">
+          <button id="fp-prev" class="fp-nav-btn" disabled>
+            <span>←</span>
+          </button>
+          <button id="fp-next" class="fp-nav-btn">
+            <span>→</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <script type="module" src="src/main.js"></script>

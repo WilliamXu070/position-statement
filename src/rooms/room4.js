@@ -71,30 +71,38 @@ export function createRoom4(scene, rooms, spellTargets) {
     codeBlock.userData.originalPos = codeBlock.position.clone();
     codeBlock.userData.originalRot = new THREE.Euler().copy(codeBlock.rotation);
     codeBlock.userData.floatOffset = Math.random() * Math.PI * 2;
+    codeBlock.userData.isCodeBlock = true; // Mark as interactable code block
 
     group.add(codeBlock);
     codeBlocks.push(codeBlock);
     spellTargets.push(codeBlock);
   }
 
-  // Tangled wires connecting code blocks
-  const wireMaterial = new THREE.LineBasicMaterial({
-    color: 0x444444,
-    linewidth: 1,
-  });
-
+  // Tangled wires connecting code blocks - store connection info for dynamic updates
   const wires = [];
-  for (let i = 0; i < 20; i++) {
-    const start = codeBlocks[Math.floor(Math.random() * codeBlocks.length)];
-    const end = codeBlocks[Math.floor(Math.random() * codeBlocks.length)];
+  const wireConnections = [];
 
-    if (start !== end) {
+  for (let i = 0; i < 20; i++) {
+    const startIndex = Math.floor(Math.random() * codeBlocks.length);
+    const endIndex = Math.floor(Math.random() * codeBlocks.length);
+
+    if (startIndex !== endIndex) {
+      const start = codeBlocks[startIndex];
+      const end = codeBlocks[endIndex];
+
+      // Store random offset for mid-point
+      const midOffset = new THREE.Vector3(
+        (Math.random() - 0.5) * 2,
+        Math.random() * 2,
+        (Math.random() - 0.5) * 2
+      );
+
       const points = [
         start.position.clone(),
         new THREE.Vector3(
-          (start.position.x + end.position.x) / 2 + (Math.random() - 0.5) * 2,
-          (start.position.y + end.position.y) / 2 + Math.random() * 2,
-          (start.position.z + end.position.z) / 2 + (Math.random() - 0.5) * 2
+          (start.position.x + end.position.x) / 2 + midOffset.x,
+          (start.position.y + end.position.y) / 2 + midOffset.y,
+          (start.position.z + end.position.z) / 2 + midOffset.z
         ),
         end.position.clone(),
       ];
@@ -106,52 +114,50 @@ export function createRoom4(scene, rooms, spellTargets) {
         emissive: 0x222222,
         emissiveIntensity: 0.2,
         roughness: 0.8,
+        transparent: true,
+        opacity: 1,
       });
       const wire = new THREE.Mesh(tubeGeometry, tubeMaterial);
+
+      // Store connection info for dynamic updates
+      wire.userData.startBlockIndex = startIndex;
+      wire.userData.endBlockIndex = endIndex;
+      wire.userData.midOffset = midOffset;
+
       group.add(wire);
       wires.push(wire);
+      wireConnections.push({ startIndex, endIndex, midOffset, wire });
     }
   }
 
-  // Clean, minimal door in the center (behind the chaos)
-  const doorGeometry = new THREE.PlaneGeometry(2, 3.5);
-  const doorMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    emissive: 0xffffff,
-    emissiveIntensity: 0.0,
-    roughness: 0.2,
-    metalness: 0.1,
-    side: THREE.DoubleSide,
-  });
-  const door = new THREE.Mesh(doorGeometry, doorMaterial);
-  door.position.set(0, 1.75, -15);
-  door.userData.clickable = true;
-  door.userData.collapsed = false;
-  door.visible = false; // Hidden initially behind code blocks
-  group.add(door);
-  spellTargets.push(door);
+  // State for animation
+  let isOrganized = false;
 
-  // Door frame
-  const frameMaterial = new THREE.MeshStandardMaterial({
-    color: 0xcccccc,
-    roughness: 0.4,
-  });
-  const frameLeft = new THREE.Mesh(new THREE.BoxGeometry(0.1, 4, 0.2), frameMaterial);
-  frameLeft.position.set(-1.05, 2, -15);
-  frameLeft.visible = false;
-  group.add(frameLeft);
+  // Calculate target positions for organized line
+  const lineTargets = [];
+  const lineSpacing = 1.8;
+  const lineY = 2.5;
+  const lineZ = -10;
+  const startX = -(codeBlocks.length - 1) * lineSpacing / 2;
 
-  const frameRight = new THREE.Mesh(new THREE.BoxGeometry(0.1, 4, 0.2), frameMaterial);
-  frameRight.position.set(1.05, 2, -15);
-  frameRight.visible = false;
-  group.add(frameRight);
+  for (let i = 0; i < codeBlocks.length; i++) {
+    lineTargets.push({
+      position: new THREE.Vector3(startX + i * lineSpacing, lineY, lineZ),
+      rotation: new THREE.Euler(0, Math.PI / 2, 0), // Rotate 90° so faces point along X axis (toward neighbors)
+    });
+  }
 
-  const frameTop = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.1, 0.2), frameMaterial);
-  frameTop.position.set(0, 4, -15);
-  frameTop.visible = false;
-  group.add(frameTop);
+  // Store reference to toggle organization function in group userData
+  group.userData.organizeBlocks = () => {
+    isOrganized = !isOrganized;
+    if (isOrganized) {
+      console.log('📐 Organizing blocks into line...');
+    } else {
+      console.log('🌀 Returning blocks to chaos...');
+    }
+  };
 
-  // Main description panel
+  // Main description panel - positioned in front of spawn
   const descPanel = createTextPanel({
     title: "Simplicity Over Complexity",
     body: [
@@ -159,12 +165,12 @@ export function createRoom4(scene, rooms, spellTargets) {
       "",
       "But simplicity is harder — and more powerful.",
       "",
-      "Click any code block to collapse the chaos.",
+      "Press E while looking at any code block to toggle organization.",
     ],
     width: 9,
     height: 4.5,
   });
-  descPanel.position.set(0, 3.5, 8);
+  descPanel.position.set(0, 3.5, -12);
   group.add(descPanel);
 
   // Dim ambient light
@@ -180,62 +186,189 @@ export function createRoom4(scene, rooms, spellTargets) {
     codeLights.push(light);
   });
 
-  // Door light (initially off)
-  const doorLight = new THREE.PointLight(0xffffff, 0, 15);
-  doorLight.position.set(0, 2, -13);
-  scene.add(doorLight);
+  // Create new organized wires that will update dynamically
+  const organizedWires = [];
+
+  for (let i = 0; i < codeBlocks.length - 1; i++) {
+    const wireMaterial = new THREE.MeshStandardMaterial({
+      color: 0x00ff88,
+      emissive: 0x00ff88,
+      emissiveIntensity: 0,
+      roughness: 0.6,
+      transparent: true,
+      opacity: 0,
+    });
+
+    // Create a simple cylinder that we'll update each frame
+    const tubeGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1, 8);
+    const wire = new THREE.Mesh(tubeGeometry, wireMaterial);
+    wire.userData.startBlockIndex = i;
+    wire.userData.endBlockIndex = i + 1;
+    group.add(wire);
+    organizedWires.push(wire);
+  }
 
   rooms.push({
     id: "room4",
     group,
     spawn: new THREE.Vector3(0, EYE_HEIGHT, -600),
     update: (time, delta) => {
-      // If clicked, collapse complexity into simplicity
-      if (door.userData.collapsed) {
-        // Move code blocks off to sides and fade
+      if (isOrganized) {
+        // Animate blocks into organized line (SLOWER)
         codeBlocks.forEach((block, i) => {
-          const angle = (i / codeBlocks.length) * Math.PI * 2;
-          const targetX = Math.cos(angle) * 25;
-          const targetZ = -5 + Math.sin(angle) * 25;
+          const target = lineTargets[i];
 
-          block.position.x += (targetX - block.position.x) * delta * 1.5;
-          block.position.z += (targetZ - block.position.z) * delta * 1.5;
-          block.material.emissiveIntensity = Math.max(0, block.material.emissiveIntensity - delta * 0.8);
+          // Smoothly move to target position (slower speed)
+          block.position.lerp(target.position, delta * 0.8);
+
+          // Smoothly rotate to aligned position (slower)
+          block.rotation.x += (target.rotation.x - block.rotation.x) * delta * 1.5;
+          block.rotation.y += (target.rotation.y - block.rotation.y) * delta * 1.5;
+          block.rotation.z += (target.rotation.z - block.rotation.z) * delta * 1.5;
+
+          // Keep emissive bright
+          block.material.emissiveIntensity = 0.6;
 
           // Update lights
           codeLights[i].position.copy(block.position);
-          codeLights[i].intensity = block.material.emissiveIntensity * 0.5;
         });
 
-        // Fade wires
+        // Update messy wires to follow blocks, then fade them out
         wires.forEach((wire) => {
+          const startBlock = codeBlocks[wire.userData.startBlockIndex];
+          const endBlock = codeBlocks[wire.userData.endBlockIndex];
+          const midOffset = wire.userData.midOffset;
+
+          if (startBlock && endBlock) {
+            // Calculate new curve based on current block positions
+            const points = [
+              startBlock.position.clone(),
+              new THREE.Vector3(
+                (startBlock.position.x + endBlock.position.x) / 2 + midOffset.x,
+                (startBlock.position.y + endBlock.position.y) / 2 + midOffset.y,
+                (startBlock.position.z + endBlock.position.z) / 2 + midOffset.z
+              ),
+              endBlock.position.clone(),
+            ];
+
+            const curve = new THREE.CatmullRomCurve3(points);
+            const newGeometry = new THREE.TubeGeometry(curve, 20, 0.03, 8, false);
+
+            // Replace old geometry with new one
+            wire.geometry.dispose();
+            wire.geometry = newGeometry;
+          }
+
+          // Fade out
           wire.material.emissiveIntensity = Math.max(0, wire.material.emissiveIntensity - delta * 0.5);
           wire.material.opacity = Math.max(0, wire.material.opacity - delta * 0.5);
-          wire.material.transparent = true;
         });
 
-        // Reveal and brighten door
-        door.visible = true;
-        frameLeft.visible = true;
-        frameRight.visible = true;
-        frameTop.visible = true;
-        doorMaterial.emissiveIntensity = Math.min(0.8, doorMaterial.emissiveIntensity + delta * 0.5);
-        doorLight.intensity = Math.min(2, doorLight.intensity + delta * 1.5);
+        // Update organized wires to follow blocks dynamically
+        organizedWires.forEach((wire) => {
+          const startBlock = codeBlocks[wire.userData.startBlockIndex];
+          const endBlock = codeBlocks[wire.userData.endBlockIndex];
+
+          if (startBlock && endBlock) {
+            // Get current positions of the blocks
+            const start = startBlock.position.clone();
+            const end = endBlock.position.clone();
+
+            // Calculate midpoint
+            const midpoint = new THREE.Vector3(
+              (start.x + end.x) / 2,
+              (start.y + end.y) / 2,
+              (start.z + end.z) / 2
+            );
+
+            // Position wire at midpoint
+            wire.position.copy(midpoint);
+
+            // Calculate length
+            const length = start.distanceTo(end);
+            wire.scale.y = length;
+
+            // Calculate rotation to point from start to end (parallel, horizontal)
+            const direction = new THREE.Vector3().subVectors(end, start).normalize();
+
+            // Create quaternion to align wire with direction
+            // Default cylinder points up (0, 1, 0), we want it to point in direction
+            const up = new THREE.Vector3(0, 1, 0);
+            const quaternion = new THREE.Quaternion();
+            quaternion.setFromUnitVectors(up, direction);
+            wire.quaternion.copy(quaternion);
+          }
+
+          // Fade in gradually
+          wire.material.emissiveIntensity = Math.min(0.6, wire.material.emissiveIntensity + delta * 0.4);
+          wire.material.opacity = Math.min(1, wire.material.opacity + delta * 0.4);
+        });
 
         // Brighten scene
-        scene.fog.color.lerp(new THREE.Color(0x2a2a2a), delta * 0.5);
+        scene.fog.color.lerp(new THREE.Color(0x1a1a1a), delta * 0.3);
       } else {
-        // Float code blocks messily
-        codeBlocks.forEach((block) => {
+        // Return to messy floating state
+        codeBlocks.forEach((block, i) => {
           const floatOffset = block.userData.floatOffset;
           const originalPos = block.userData.originalPos;
+          const originalRot = block.userData.originalRot;
 
-          block.position.y = originalPos.y + Math.sin(time + floatOffset) * 0.2;
-          block.rotation.y += delta * 0.2;
+          // Animate back to original position with floating
+          const targetPos = originalPos.clone();
+          targetPos.y = originalPos.y + Math.sin(time + floatOffset) * 0.2;
+
+          block.position.lerp(targetPos, delta * 0.8);
+
+          // Animate back to original rotation (with spinning)
+          block.rotation.x += (originalRot.x - block.rotation.x) * delta * 1.5;
+          block.rotation.y += delta * 0.2; // Continue spinning
+          block.rotation.z += (originalRot.z - block.rotation.z) * delta * 1.5;
 
           // Pulse emissive
           const pulse = 0.8 + Math.sin(time * 2 + floatOffset) * 0.3;
           block.material.emissiveIntensity = pulse;
+
+          // Update lights
+          if (codeLights[i]) {
+            codeLights[i].position.copy(block.position);
+          }
+        });
+
+        // Update messy wires to follow floating blocks
+        wires.forEach((wire) => {
+          const startBlock = codeBlocks[wire.userData.startBlockIndex];
+          const endBlock = codeBlocks[wire.userData.endBlockIndex];
+          const midOffset = wire.userData.midOffset;
+
+          if (startBlock && endBlock) {
+            // Calculate new curve based on current block positions
+            const points = [
+              startBlock.position.clone(),
+              new THREE.Vector3(
+                (startBlock.position.x + endBlock.position.x) / 2 + midOffset.x,
+                (startBlock.position.y + endBlock.position.y) / 2 + midOffset.y,
+                (startBlock.position.z + endBlock.position.z) / 2 + midOffset.z
+              ),
+              endBlock.position.clone(),
+            ];
+
+            const curve = new THREE.CatmullRomCurve3(points);
+            const newGeometry = new THREE.TubeGeometry(curve, 20, 0.03, 8, false);
+
+            // Replace old geometry with new one
+            wire.geometry.dispose();
+            wire.geometry = newGeometry;
+          }
+
+          // Fade in messy wires
+          wire.material.emissiveIntensity = Math.min(0.2, wire.material.emissiveIntensity + delta * 0.5);
+          wire.material.opacity = Math.min(1, wire.material.opacity + delta * 0.5);
+        });
+
+        // Fade out organized wires
+        organizedWires.forEach((wire) => {
+          wire.material.emissiveIntensity = Math.max(0, wire.material.emissiveIntensity - delta * 0.4);
+          wire.material.opacity = Math.max(0, wire.material.opacity - delta * 0.4);
         });
       }
     },

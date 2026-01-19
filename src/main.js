@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { EYE_HEIGHT, GRAVITY, JUMP_VELOCITY, GROUND_HEIGHT } from "./constants.js";
 import { initTextureSystem } from "./utils/textures.js";
 import { initTextPanelSystem } from "./utils/textPanel.js";
@@ -116,44 +117,166 @@ restartButton.addEventListener("click", () => {
 const planktonOverlay = document.getElementById("plankton-overlay");
 let planktonVisible = false;
 
-// Click handler for VIEW button in Room 3
-renderer.domElement.addEventListener("click", () => {
-  if (!controls.isLocked) {
-    console.log('Click ignored - controls not locked');
-    return;
+// === FIRST PRINCIPLES OVERLAY SYSTEM ===
+
+const fpOverlay = document.getElementById("first-principles-overlay");
+const fpImage = document.getElementById("fp-image");
+const fpTitle = document.getElementById("fp-title");
+const fpStepIndicator = document.getElementById("fp-step-indicator");
+const fpProgressFill = document.getElementById("fp-progress-fill");
+const fpPrevBtn = document.getElementById("fp-prev");
+const fpNextBtn = document.getElementById("fp-next");
+
+let fpCurrentStep = 0;
+let fpOverlayActive = false;
+
+const fpSteps = [
+  { title: "Idea", image: "Images/1.jpg" },
+  { title: "Background Research", image: "Images/2.png" },
+  { title: "Optical System Development", image: "Images/3.jpg" },
+  { title: "CAD Development", image: "Images/4.png" },
+  { title: "Software Development", image: "Images/5.png" },
+  { title: "Prototype Development", image: "Images/6.png" },
+  { title: "Iteration", image: "Images/7.png" },
+  { title: "Final Result", image: "Images/8.png" },
+];
+
+function updateFPDisplay() {
+  const step = fpSteps[fpCurrentStep];
+  fpImage.src = step.image;
+  fpTitle.textContent = step.title;
+  fpStepIndicator.textContent = `Step ${fpCurrentStep + 1} of ${fpSteps.length}`;
+
+  // Update progress bar (percentage of completion)
+  const progressPercent = ((fpCurrentStep + 1) / fpSteps.length) * 100;
+  fpProgressFill.style.width = `${progressPercent}%`;
+
+  // Update button states
+  fpPrevBtn.disabled = fpCurrentStep === 0;
+  fpNextBtn.disabled = fpCurrentStep === fpSteps.length - 1;
+}
+
+function showFPOverlay() {
+  fpOverlayActive = true;
+  fpCurrentStep = 0; // Reset to first step
+  updateFPDisplay();
+  fpOverlay.classList.remove("hidden");
+  controls.unlock(); // Unlock pointer so user can click
+  console.log('📊 Showing First Principles overlay');
+}
+
+function hideFPOverlay() {
+  fpOverlayActive = false;
+  fpOverlay.classList.add("hidden");
+  console.log('📊 Hiding First Principles overlay');
+}
+
+// Navigation functions
+function fpGoNext() {
+  if (fpCurrentStep < fpSteps.length - 1) {
+    fpCurrentStep++;
+    updateFPDisplay();
   }
+}
 
-  // Raycast from camera center to detect clicks on objects
-  const clickRaycaster = new THREE.Raycaster();
-  clickRaycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-  const intersects = clickRaycaster.intersectObjects(spellTargets, true);
+function fpGoPrev() {
+  if (fpCurrentStep > 0) {
+    fpCurrentStep--;
+    updateFPDisplay();
+  }
+}
 
-  console.log(`Click detected. Intersects: ${intersects.length}, Room: ${currentRoomIndex}`);
+// Event listeners for First Principles overlay
+fpNextBtn.addEventListener("click", fpGoNext);
+fpPrevBtn.addEventListener("click", fpGoPrev);
+
+// Function to check if looking at VIEW button and activate it
+function checkViewButton() {
+  if (!controls.isLocked) return;
+
+  // Raycast from camera center to detect what we're looking at
+  const viewRaycaster = new THREE.Raycaster();
+  viewRaycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+  const intersects = viewRaycaster.intersectObjects(spellTargets, true);
 
   if (intersects.length > 0) {
-    const clickedObject = intersects[0].object;
-    console.log('Clicked object:', clickedObject.userData);
+    const lookedAtObject = intersects[0].object;
 
-    // Check if clicked object is the VIEW button
-    if (clickedObject.userData.isViewButton) {
+    // Check if looking at the VIEW button
+    if (lookedAtObject.userData.isViewButton) {
       planktonVisible = true;
       planktonOverlay.classList.remove("hidden");
       console.log('🔬 Showing plankton view');
-    } else {
-      // Check parent objects for the button flag
-      let parent = clickedObject.parent;
-      while (parent) {
-        if (parent.userData && parent.userData.isViewButton) {
-          planktonVisible = true;
-          planktonOverlay.classList.remove("hidden");
-          console.log('🔬 Showing plankton view (via parent)');
-          break;
-        }
-        parent = parent.parent;
+      return true;
+    }
+
+    // Check parent objects for the button flag
+    let parent = lookedAtObject.parent;
+    while (parent) {
+      if (parent.userData && parent.userData.isViewButton) {
+        planktonVisible = true;
+        planktonOverlay.classList.remove("hidden");
+        console.log('🔬 Showing plankton view (via parent)');
+        return true;
+      }
+      parent = parent.parent;
+    }
+  }
+  return false;
+}
+
+// Function to check if looking at code block and trigger organization
+function checkCodeBlockInteraction() {
+  if (!controls.isLocked) return;
+
+  // Raycast from camera center to detect what we're looking at
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+  const intersects = raycaster.intersectObjects(spellTargets, true);
+
+  if (intersects.length > 0) {
+    const lookedAtObject = intersects[0].object;
+
+    // Check if looking at a code block
+    if (lookedAtObject.userData.isCodeBlock) {
+      // Trigger organization animation
+      const currentRoom = rooms[currentRoomIndex];
+      if (currentRoom && currentRoom.group.userData.organizeBlocks) {
+        currentRoom.group.userData.organizeBlocks();
+        console.log('📐 Triggered block organization');
+        return true;
       }
     }
   }
-});
+  return false;
+}
+
+// Update interaction prompt based on what we're looking at
+function updateInteractionPrompt() {
+  if (!controls.isLocked) {
+    prompt.classList.add("hidden");
+    return;
+  }
+
+  // Raycast from camera center to detect what we're looking at
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+  const intersects = raycaster.intersectObjects(spellTargets, true);
+
+  if (intersects.length > 0) {
+    const lookedAtObject = intersects[0].object;
+
+    // Check if looking at a code block
+    if (lookedAtObject.userData.isCodeBlock) {
+      prompt.textContent = "Press E to toggle organization";
+      prompt.classList.remove("hidden");
+      return;
+    }
+  }
+
+  // Hide prompt if not looking at anything interactable
+  prompt.classList.add("hidden");
+}
 
 let firstLock = true;
 let lastUnlockTime = 0;
@@ -186,8 +309,10 @@ controls.addEventListener("unlock", () => {
     overlay.style.display = "grid";
   }
 
-  // Pause audio when user presses Escape
-  pauseRoomAudio();
+  // Pause audio when user presses Escape (but not for Room 3 overlay)
+  if (!fpOverlayActive) {
+    pauseRoomAudio();
+  }
 });
 
 // Add error handler for pointer lock failures
@@ -204,6 +329,8 @@ document.addEventListener('pointerlockchange', () => {
 });
 
 camera.position.set(0, EYE_HEIGHT, 0);
+camera.layers.enable(0);
+camera.layers.disable(1);
 scene.add(controls.getObject());
 
 // ===== SPELL SYSTEM =====
@@ -254,6 +381,10 @@ const wandState = {
 };
 const raycaster = new THREE.Raycaster();
 const lastSpellTime = new Map();
+const avatarState = {
+  model: null,
+  ready: false,
+};
 
 // ===== AUDIO SYSTEM =====
 
@@ -271,6 +402,30 @@ function setupRooms() {
 }
 
 setupRooms();
+
+// ===== PLAYER AVATAR (STEVE) =====
+
+const avatarLoader = new GLTFLoader();
+avatarLoader.load(
+  "models/minecraft_-_steve.glb",
+  (gltf) => {
+    avatarState.model = gltf.scene;
+    avatarState.model.name = "player-avatar";
+    avatarState.model.scale.set(0.08, 0.08, 0.08);
+    avatarState.model.layers.set(1);
+    avatarState.model.traverse((child) => {
+      child.layers.set(1);
+    });
+    avatarState.model.visible = false;
+    scene.add(avatarState.model);
+    avatarState.ready = true;
+    console.log("✅ Player avatar loaded");
+  },
+  undefined,
+  (error) => {
+    console.error("❌ Error loading player avatar:", error);
+  }
+);
 
 // Initialize room groups array and hide all except first
 roomGroups.push(...rooms.map((r) => r.group));
@@ -302,6 +457,13 @@ function teleportToRoom(index) {
     planktonVisible = false;
     planktonOverlay.classList.add("hidden");
     console.log('🔬 Hiding plankton view (room change)');
+  }
+
+  // Show/hide First Principles overlay for Room 3
+  if (index === 2) { // Room 3 (0-indexed)
+    showFPOverlay();
+  } else if (fpOverlayActive) {
+    hideFPOverlay();
   }
 
   roomLabel.textContent = ROOM_CONFIGS[index].label;
@@ -344,11 +506,18 @@ const onKeyDown = (event) => {
           teleportToRoom(currentRoomIndex + 1);
         }
       }
-      move.forward = true;
+      if (!fpOverlayActive) {
+        move.forward = true;
+      }
       break;
     case "ArrowLeft":
     case "KeyA":
-      move.left = true;
+      if (fpOverlayActive) {
+        // Navigate slides when overlay is active
+        fpGoPrev();
+      } else {
+        move.left = true;
+      }
       break;
     case "ArrowDown":
     case "KeyS":
@@ -358,17 +527,31 @@ const onKeyDown = (event) => {
           teleportToRoom(currentRoomIndex - 1);
         }
       }
-      move.backward = true;
+      if (!fpOverlayActive) {
+        move.backward = true;
+      }
       break;
     case "ArrowRight":
     case "KeyD":
-      move.right = true;
+      if (fpOverlayActive) {
+        // Navigate slides when overlay is active
+        fpGoNext();
+      } else {
+        move.right = true;
+      }
       break;
     case "Digit1":
       spellInput.lightning = true;
       break;
     case "KeyH":
       returnToRoomCenter();
+      break;
+    case "KeyE":
+      // Interact with objects
+      if (!checkViewButton()) {
+        // If not looking at VIEW button, check for code blocks (Room 4)
+        checkCodeBlockInteraction();
+      }
       break;
     case "Space":
       if (canJump && isOnGround) {
@@ -634,12 +817,26 @@ function animate() {
   // Update current room
   const currentRoom = rooms[currentRoomIndex];
   if (currentRoom && currentRoom.update) {
-    currentRoom.update(time, delta);
+    currentRoom.update(time, delta, camera);
+  }
+
+  if (avatarState.ready && avatarState.model) {
+    const playerPosition = controls.getObject().position;
+    avatarState.model.position.set(
+      playerPosition.x,
+      playerPosition.y - EYE_HEIGHT + 1.2,
+      playerPosition.z
+    );
+    avatarState.model.rotation.y = controls.getObject().rotation.y + Math.PI;
+    avatarState.model.visible = currentRoom?.id === "room6";
   }
 
   updateWand(time, delta);
   updateLightning(delta);
   updateEffects(delta);
+
+  // Update interaction prompt based on what we're looking at
+  updateInteractionPrompt();
 
   renderer.render(scene, camera);
 }
